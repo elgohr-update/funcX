@@ -1,3 +1,6 @@
+import os
+
+
 class GlobusFile:
     """The Globus File Class.
 
@@ -21,11 +24,43 @@ class GlobusFile:
 
         """
         self.endpoint = endpoint
-        self.path = path
+        if recursive is False:
+            obs_path = os.path.abspath(path)
+            self.path = obs_path
+        else:
+            obs_path = os.path.abspath(path)
+            self.path = obs_path
         self.recursive = recursive
+
+    @classmethod
+    def remote_generate(cls, relative_path, recursive=False):
+        if relative_path.startswith('/'):
+            relative_path = relative_path[1:]
+        globus_ep_id = os.getenv('GLOBUS_EP_ID')
+        local_path = os.getenv('LOCAL_PATH')
+        obs_path = f"{local_path}/{relative_path}"
+        return cls(endpoint=globus_ep_id, path=obs_path, recursive=recursive)
+
+    def get_remote_file_path(self):
+        local_path = os.getenv('LOCAL_PATH')
+        if local_path is not None and local_path.endswith('/'):
+            local_path = local_path[:-1]
+        return f"{local_path}/{os.path.basename(self.path)}"
+
+    def get_remote_file_path_in_dir(self, relative_path):
+        if relative_path.startswith('/'):
+            relative_path = relative_path[1:]
+        local_path = os.getenv('LOCAL_PATH')
+        if local_path is not None and local_path.endswith('/'):
+            local_path = local_path[:-1]
+        return f"{local_path}/{os.path.basename(self.path)}/{relative_path}"
+
+    def get_file_path(self):
+        return self.path
 
     def generate_url(self):
         return f"globus://{self.endpoint}/{self.path}"
 
     def get_recursive(self):
         return self.recursive
+

@@ -77,6 +77,8 @@ class Manager:
         worker_max_idletime=60,
         # TODO : This should be 10ms
         poll_period=100,
+        local_data_path="",
+        globus_endpoint_id="",
     ):
         """
         Parameters
@@ -235,6 +237,11 @@ class Manager:
         self.poller.register(self.funcx_task_socket, zmq.POLLIN)
 
         self.task_done_counter = 0
+
+        self.local_data_path = local_data_path
+        self.globus_endpoint_id = globus_endpoint_id
+        os.environ["LOCAL_PATH"] = self.local_data_path
+        os.environ["GLOBUS_EP_ID"] = self.globus_endpoint_id
 
     def create_reg_message(self):
         """Creates a registration message to identify the worker to the interchange"""
@@ -758,6 +765,14 @@ def cli_run():
         help="The number of backup (must be non-zero) per logger file",
     )
 
+    parser.add_argument(
+        "--local_data_path", default="", help="For setting globus ep path"
+    )
+
+    parser.add_argument(
+        "--globus_endpoint_id", default="", help="For setting globus ep id"
+    )
+
     args = parser.parse_args()
 
     try:
@@ -786,6 +801,8 @@ def cli_run():
         logger.info(f"Block ID: {args.block_id}")
         logger.info(f"cores_per_worker: {args.cores_per_worker}")
         logger.info(f"task_url: {args.task_url}")
+        logger.info(f"local_path: {args.local_data_path}")
+        logger.info(f"globus_endpoint_id: {args.globus_endpoint_id}")
         logger.info(f"result_url: {args.result_url}")
         logger.info(f"hb_period: {args.hb_period}")
         logger.info(f"hb_threshold: {args.hb_threshold}")
@@ -816,6 +833,8 @@ def cli_run():
             scheduler_mode=args.scheduler_mode,
             worker_type=args.worker_type,
             poll_period=int(args.poll),
+            local_data_path=args.local_data_path,
+            globus_endpoint_id=args.globus_endpoint_id,
         )
         manager.start()
 

@@ -306,6 +306,7 @@ class Interchange:
         # Globus transfer
         self.data_staging = False
         self.globus_ep_id = globus_ep_id
+        self.globus_data_path = None
         if self.globus_ep_id is not None:
             print(f"Initiating Globus transfer client {self.globus_ep_id}")
             self.data_staging = True
@@ -385,6 +386,8 @@ class Interchange:
                 "--log_max_bytes={log_max_bytes} "
                 "--log_backup_count={log_backup_count} "
                 "--worker_type={{worker_type}} "
+                "--local_data_path={local_data_path} "
+                "--globus_endpoint_id={globus_endpoint_id} "
             )
 
         self.current_platform = {
@@ -457,6 +460,8 @@ class Interchange:
             logdir=working_dir,
             log_max_bytes=self.log_max_bytes,
             log_backup_count=self.log_backup_count,
+            local_data_path=self.globus_data_path,
+            globus_endpoint_id=self.globus_ep_id,
         )
 
         self.launch_cmd = l_cmd

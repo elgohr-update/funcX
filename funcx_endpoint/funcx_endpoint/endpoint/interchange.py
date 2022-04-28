@@ -238,6 +238,10 @@ class EndpointInterchange:
         for executor in self.config.executors:
             logger.info(f"Initializing executor: {executor.label}")
             executor.funcx_service_address = self.config.funcx_service_address
+            executor.globus_ep_id = self.config.globus_ep_id
+            logger.info(f"Globus_ep_id : {self.config.globus_ep_id}")
+            executor.local_data_path = self.config.local_data_path
+            executor.globus_polling_interval = self.config.globus_polling_interval
             if not executor.endpoint_id:
                 executor.endpoint_id = self.endpoint_id
             else:
@@ -640,6 +644,8 @@ class EndpointInterchange:
 
                 # results will be a pickled dict with task_id, container_id,
                 # and results/exception
+                logger.info(f"Result address is : {self.client_address}")
+                logger.info(f"Result port is : {self.client_address}")
                 self.results_outgoing.put("forwarder", results["message"])
 
             except queue.Empty:

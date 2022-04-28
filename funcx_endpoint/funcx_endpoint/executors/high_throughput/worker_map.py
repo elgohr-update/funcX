@@ -334,12 +334,13 @@ class WorkerMap:
             logger.info(f"Command string with singularity:\n {modded_cmd}")
         else:
             raise NameError("Invalid container launch mode.")
-
+        logger.info(f"ENv string :\n {os.environ.get('LOCAL_PATH')}")
         try:
             proc = subprocess.Popen(
                 modded_cmd.split(),
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
+                env=os.environ.copy(),
                 shell=False,
             )
 
