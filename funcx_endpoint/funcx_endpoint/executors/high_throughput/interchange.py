@@ -505,27 +505,54 @@ class Interchange:
         """
         logger.info("[TRANSFER_TRACKING_THREAD] Starting")
         while not kill_event.is_set():
-            for task_id, info in list(self.active_transfers.items()):
-                transfer_task, src_ep, src_path, dst_ep, dst_path = info
-                logger.debug(
-                    "[TRANSFER_TRACKING_THREAD] Globus Transfer task: {}".format(
-                        transfer_task
-                    )
-                )
-                transfer_status = self.gtc.status(transfer_task)
-                logger.debug(
-                    "[TRANSFER_TRACKING_THREAD] Status for task: {}".format(
-                        transfer_status["status"]
-                    )
-                )
-
-                if transfer_status["status"] == "SUCCEEDED":
-                    logger.info(
-                        "[TRANSFER_TRACKING_THREAD] Globus transfer{}, "
-                        "from {}{} to {}{} succeeded".format(
-                            transfer_task["task_id"], src_ep, src_path, dst_ep, dst_path
+            for task_id, info_list in list(self.active_transfers.items()):
+                success_cnt = 0
+                for info in info_list:
+                    transfer_task, src_ep, src_path, dst_ep, dst_path = info
+                    logger.debug(
+                        "[TRANSFER_TRACKING_THREAD] Globus Transfer task: {}".format(
+                            transfer_task
                         )
                     )
+                    transfer_status = self.gtc.status(transfer_task)
+                    logger.debug(
+                        "[TRANSFER_TRACKING_THREAD] Status for task: {}".format(
+                            transfer_status["status"]
+                        )
+                    )
+                    if transfer_status["status"] == "SUCCEEDED":
+                        logger.info(
+                            "[TRANSFER_TRACKING_THREAD] Globus transfer{}, "
+                            "from {}{} to {}{} succeeded".format(
+                                transfer_task["task_id"], src_ep, src_path, dst_ep, dst_path
+                            )
+                        )
+                        success_cnt += 1
+                    elif (
+                            transfer_status["status"] == "FAILED"
+                            or transfer_status["status"] == "ACTIVE"
+                    ):
+                        failed_reason = self.gtc.get_event(transfer_task)
+                        if failed_reason is not None:
+                            self.gtc.cancel(transfer_task)
+                            msg = self.pending_transfer_tasks.pop(task_id)
+                            del self.active_transfers[task_id]
+                            self.failed_transfer_tasks[msg.task_id] = GlobusTransferFailure(
+                                failed_reason
+                            )
+                            logger.error(
+                                "[TRANSFER_TRACKING_THREAD] Globus transfer {}, "
+                                'from {}{} to {}{} failed due to error: "{}"'.format(
+                                    transfer_task["task_id"],
+                                    src_ep,
+                                    src_path,
+                                    dst_ep,
+                                    dst_path,
+                                    failed_reason,
+                                )
+                            )
+                            break
+                if success_cnt == len(info_list):
                     msg = self.pending_transfer_tasks.pop(task_id)
                     del self.active_transfers[task_id]
                     local_container = msg.local_container
@@ -537,30 +564,6 @@ class Interchange:
                             "raw_buffer": msg.whole_buffer,
                         }
                     )
-                elif (
-                    transfer_status["status"] == "FAILED"
-                    or transfer_status["status"] == "ACTIVE"
-                ):
-                    failed_reason = self.gtc.get_event(transfer_task)
-                    if failed_reason is not None:
-                        self.gtc.cancel(transfer_task)
-                        msg = self.pending_transfer_tasks.pop(task_id)
-                        del self.active_transfers[task_id]
-                        self.failed_transfer_tasks[msg.task_id] = GlobusTransferFailure(
-                            failed_reason
-                        )
-                        logger.error(
-                            "[TRANSFER_TRACKING_THREAD] Globus transfer {}, "
-                            'from {}{} to {}{} failed due to error: "{}"'.format(
-                                transfer_task["task_id"],
-                                src_ep,
-                                src_path,
-                                dst_ep,
-                                dst_path,
-                                failed_reason,
-                            )
-                        )
-
             time.sleep(self.globus_polling_interval)
 
     def _submit_transfer(self, kill_event):
@@ -580,34 +583,40 @@ class Interchange:
             else:
                 # to be solved
                 data_url = msg.data_url
-                recursive = True if msg.recursive == "True" else False
-
-            try:
-                parsed_url = urlparse(data_url)
-                src_ep = parsed_url.netloc
-                src_path = parsed_url.path
-                basename = os.path.basename(src_path)
-            except Exception as e:
-                logger.exception(
-                    "[TRANSFER_SUBMIT_THREAD] Failed to parse data url {}".format(
-                        data_url
-                    )
-                )
-                self.failed_transfer_tasks[msg.task_id] = GlobusTransferFailure(e)
-            else:
+            info = []
+            for url in data_url.split("|")[:-1]:
+                recursive = True if url.split(":")[2] == "True" else False
+                begin = url.rfind(":")
+                globus_url = url[:begin]
                 try:
-                    info = self.gtc.transfer(
-                        src_ep, src_path, basename, recursive=recursive
-                    )
+                    logger.info("[TRANSFER_SUBMIT_THREAD] msg url is {}".format(globus_url))
+                    parsed_url = urlparse(globus_url)
+                    src_ep = parsed_url.netloc
+                    src_path = parsed_url.path
+                    basename = os.path.basename(src_path)
                 except Exception as e:
                     logger.exception(
-                        "[TRANSFER_SUBMIT_THREAD] Failed "
-                        "to submit transfer for task {}".format(msg.task_id)
+                        "[TRANSFER_SUBMIT_THREAD] Failed to parse data url {}".format(
+                            globus_url
+                        )
                     )
                     self.failed_transfer_tasks[msg.task_id] = GlobusTransferFailure(e)
+                    break
                 else:
-                    self.active_transfers[msg.task_id] = info
-                    self.pending_transfer_tasks[msg.task_id] = msg
+                    try:
+                        task_info = self.gtc.transfer(
+                            src_ep, src_path, basename, recursive=recursive
+                        )
+                        info.append(task_info)
+                    except Exception as e:
+                        logger.exception(
+                            "[TRANSFER_SUBMIT_THREAD] Failed "
+                            "to submit transfer for task {}".format(msg.task_id)
+                        )
+                        self.failed_transfer_tasks[msg.task_id] = GlobusTransferFailure(e)
+                        break
+            self.active_transfers[msg.task_id] = info
+            self.pending_transfer_tasks[msg.task_id] = msg
 
     def migrate_tasks_to_internal(self, kill_event, status_request):
         """Pull tasks from the incoming tasks 0mq pipe onto the internal

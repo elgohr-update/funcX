@@ -1,4 +1,4 @@
-from funcx.sdk.file import GlobusFile
+from funcx.sdk.file import GlobusFileList
 from funcx.serialize import FuncXSerializer
 
 
@@ -26,7 +26,7 @@ class Batch:
         ----------
         *args : Any
             Args as specified by the function signature
-        remote_data : GlobusFile object
+        remote_data : GlobusFileList object
             remote data path. Optional
         endpoint_id : uuid str
             Endpoint UUID string. Required
@@ -43,7 +43,7 @@ class Batch:
         assert function_id is not None, "function_id key-word argument must be set"
         if remote_data:
             assert isinstance(
-                remote_data, GlobusFile
+                remote_data, GlobusFileList
             ), "Please use GlobusFile to define your remote data"
 
         ser_args = self.fx_serializer.serialize(args)
@@ -51,7 +51,8 @@ class Batch:
         payload = self.fx_serializer.pack_buffers([ser_args, ser_kwargs])
 
         data_url = remote_data.generate_url() if remote_data else None
-        recursive = remote_data.get_recursive() if remote_data else False
+        # data_url covers the recursive attribute
+        recursive = False if remote_data else False
 
         data = {
             "endpoint": endpoint_id,

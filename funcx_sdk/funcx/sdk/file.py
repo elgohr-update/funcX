@@ -64,3 +64,15 @@ class GlobusFile:
     def get_recursive(self):
         return self.recursive
 
+
+class GlobusFileList:
+    def __init__(self, file_list):
+        self.file_list = file_list
+
+    def generate_url(self):
+        if len(self.file_list) <= 0:
+            return ""
+        url = ""
+        for file in self.file_list:
+            url += f"globus://{file.endpoint}/{file.path}:{file.recursive}|"
+        return url
