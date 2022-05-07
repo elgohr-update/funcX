@@ -115,42 +115,42 @@ class Interchange:
     """
 
     def __init__(
-        self,
-        #
-        strategy=None,
-        poll_period=None,
-        heartbeat_period=None,
-        heartbeat_threshold=None,
-        working_dir=None,
-        provider=None,
-        max_workers_per_node=None,
-        mem_per_worker=None,
-        prefetch_capacity=None,
-        scheduler_mode=None,
-        container_type=None,
-        container_cmd_options="",
-        worker_mode=None,
-        cold_routing_interval=10.0,
-        funcx_service_address=None,
-        scaling_enabled=True,
-        #
-        client_address="127.0.0.1",
-        interchange_address="127.0.0.1",
-        client_ports: Tuple[int, int, int] = (50055, 50056, 50057),
-        worker_ports=None,
-        worker_port_range=(54000, 55000),
-        cores_per_worker=1.0,
-        worker_debug=False,
-        launch_cmd=None,
-        logdir=".",
-        logging_level=logging.INFO,
-        endpoint_id=None,
-        suppress_failure=False,
-        log_max_bytes=256 * 1024 * 1024,
-        log_backup_count=1,
-        globus_ep_id=None,
-        local_data_path=None,
-        globus_polling_interval=10,
+            self,
+            #
+            strategy=None,
+            poll_period=None,
+            heartbeat_period=None,
+            heartbeat_threshold=None,
+            working_dir=None,
+            provider=None,
+            max_workers_per_node=None,
+            mem_per_worker=None,
+            prefetch_capacity=None,
+            scheduler_mode=None,
+            container_type=None,
+            container_cmd_options="",
+            worker_mode=None,
+            cold_routing_interval=10.0,
+            funcx_service_address=None,
+            scaling_enabled=True,
+            #
+            client_address="127.0.0.1",
+            interchange_address="127.0.0.1",
+            client_ports: Tuple[int, int, int] = (50055, 50056, 50057),
+            worker_ports=None,
+            worker_port_range=(54000, 55000),
+            cores_per_worker=1.0,
+            worker_debug=False,
+            launch_cmd=None,
+            logdir=".",
+            logging_level=logging.INFO,
+            endpoint_id=None,
+            suppress_failure=False,
+            log_max_bytes=256 * 1024 * 1024,
+            log_backup_count=1,
+            globus_ep_id=None,
+            local_data_path=None,
+            globus_polling_interval=10,
     ):
         """
         Parameters
@@ -515,7 +515,7 @@ class Interchange:
                         )
                     )
                     transfer_status = self.gtc.status(transfer_task)
-                    logger.debug(
+                    logger.info(
                         "[TRANSFER_TRACKING_THREAD] Status for task: {}".format(
                             transfer_status["status"]
                         )
@@ -584,6 +584,7 @@ class Interchange:
                 # to be solved
                 data_url = msg.data_url
             info = []
+            need_to_trans = 0
             for url in data_url.split("|")[:-1]:
                 recursive = True if url.split(":")[2] == "True" else False
                 begin = url.rfind(":")
@@ -594,6 +595,12 @@ class Interchange:
                     src_ep = parsed_url.netloc
                     src_path = parsed_url.path
                     basename = os.path.basename(src_path)
+                    # if the dst_ep equals to src_ep, don't transfer the data.
+                    if src_ep == self.gtc.dst_ep:
+                        continue
+                    else:
+                        need_to_trans += 1
+
                 except Exception as e:
                     logger.exception(
                         "[TRANSFER_SUBMIT_THREAD] Failed to parse data url {}".format(
@@ -615,8 +622,9 @@ class Interchange:
                         )
                         self.failed_transfer_tasks[msg.task_id] = GlobusTransferFailure(e)
                         break
-            self.active_transfers[msg.task_id] = info
-            self.pending_transfer_tasks[msg.task_id] = msg
+            if need_to_trans > 0:
+                self.active_transfers[msg.task_id] = info
+                self.pending_transfer_tasks[msg.task_id] = msg
 
     def migrate_tasks_to_internal(self, kill_event, status_request):
         """Pull tasks from the incoming tasks 0mq pipe onto the internal
@@ -736,8 +744,8 @@ class Interchange:
         outstanding = {}
         for task_type in self.pending_task_queue:
             outstanding[task_type] = (
-                outstanding.get(task_type, 0)
-                + self.pending_task_queue[task_type].qsize()
+                    outstanding.get(task_type, 0)
+                    + self.pending_task_queue[task_type].qsize()
             )
         for manager in self._ready_manager_queue:
             for task_type in self._ready_manager_queue[manager]["tasks"]:
@@ -790,8 +798,8 @@ class Interchange:
         """
         for manager in self._ready_manager_queue:
             if (
-                self._ready_manager_queue[manager]["active"]
-                and self._ready_manager_queue[manager]["block_id"] == block_id
+                    self._ready_manager_queue[manager]["active"]
+                    and self._ready_manager_queue[manager]["block_id"] == block_id
             ):
                 logger.debug(f"[HOLD_BLOCK]: Sending hold to manager: {manager}")
                 self.hold_manager(manager)
@@ -949,8 +957,8 @@ class Interchange:
 
             # Listen for requests for work
             if (
-                self.task_outgoing in self.socks
-                and self.socks[self.task_outgoing] == zmq.POLLIN
+                    self.task_outgoing in self.socks
+                    and self.socks[self.task_outgoing] == zmq.POLLIN
             ):
                 logger.debug("[MAIN] starting task_outgoing section")
                 message = self.task_outgoing.recv_multipart()
@@ -991,9 +999,9 @@ class Interchange:
                         )
 
                         if (
-                            msg["python_v"].rsplit(".", 1)[0]
-                            != self.current_platform["python_v"].rsplit(".", 1)[0]
-                            or msg["parsl_v"] != self.current_platform["parsl_v"]
+                                msg["python_v"].rsplit(".", 1)[0]
+                                != self.current_platform["python_v"].rsplit(".", 1)[0]
+                                or msg["parsl_v"] != self.current_platform["parsl_v"]
                         ):
                             logger.warn(
                                 "[MAIN] Manager %s has incompatible version info with "
@@ -1111,8 +1119,8 @@ class Interchange:
 
             # Receive any results and forward to client
             if (
-                self.results_incoming in self.socks
-                and self.socks[self.results_incoming] == zmq.POLLIN
+                    self.results_incoming in self.socks
+                    and self.socks[self.results_incoming] == zmq.POLLIN
             ):
                 logger.debug("[MAIN] entering results_incoming section")
                 manager, *b_messages = self.results_incoming.recv_multipart()
@@ -1218,7 +1226,7 @@ class Interchange:
                 manager
                 for manager in self._ready_manager_queue
                 if time.time() - self._ready_manager_queue[manager]["last"]
-                > self.heartbeat_threshold
+                   > self.heartbeat_threshold
             ]
             bad_manager_msgs = []
             for manager in bad_managers:
@@ -1461,7 +1469,7 @@ def cli_run():
         "--worker_ports",
         default=None,
         help="OPTIONAL, pair of workers ports to listen on, "
-        "eg --worker_ports=50001,50005",
+             "eg --worker_ports=50001,50005",
     )
     parser.add_argument(
         "--suppress_failure",
