@@ -625,6 +625,16 @@ class Interchange:
             if need_to_trans > 0:
                 self.active_transfers[msg.task_id] = info
                 self.pending_transfer_tasks[msg.task_id] = msg
+            else:
+                local_container = msg.local_container
+                self.pending_task_queue[local_container].put(
+                    {
+                        "task_id": msg.task_id,
+                        "container_id": msg.container_id,
+                        "local_container": local_container,
+                        "raw_buffer": msg.whole_buffer,
+                    }
+                )
 
     def migrate_tasks_to_internal(self, kill_event, status_request):
         """Pull tasks from the incoming tasks 0mq pipe onto the internal
