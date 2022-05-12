@@ -530,7 +530,7 @@ class Interchange:
                         success_cnt += 1
                     elif (
                             transfer_status["status"] == "FAILED"
-                            or transfer_status["status"] == "ACTIVE"
+                            or transfer_status["status"] == "INACTIVE"
                     ):
                         failed_reason = self.gtc.get_event(transfer_task)
                         if failed_reason is not None:
