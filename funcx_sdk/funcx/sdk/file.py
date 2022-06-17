@@ -66,8 +66,9 @@ class GlobusFile:
 
 
 class GlobusFileList:
-    def __init__(self, file_list):
+    def __init__(self, file_list, pre_trans=False):
         self.file_list = file_list
+        self.pre_trans = pre_trans
 
     def generate_url(self):
         if len(self.file_list) <= 0:
