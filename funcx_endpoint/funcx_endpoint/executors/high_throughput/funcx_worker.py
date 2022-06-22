@@ -5,6 +5,7 @@ import logging
 import os
 import pickle
 import sys
+import inspect
 
 import zmq
 from parsl.app.errors import RemoteExceptionWrapper
@@ -12,6 +13,64 @@ from parsl.app.errors import RemoteExceptionWrapper
 from funcx import set_file_logger
 from funcx.serialize import FuncXSerializer
 from funcx_endpoint.executors.high_throughput.messages import Message
+from funcx.sdk.file import GlobusFile, GlobusDirectory
+import time
+from memory_profiler import memory_usage
+
+
+def judge_and_set(target):
+    if isinstance(target, GlobusFile):
+        file_size = os.path.getsize(target.get_remote_file_path())
+        target.set_file_size(file_size)
+    if isinstance(target, GlobusDirectory):
+        directory_size = 0
+        for root, dirs, files in os.walk(target.get_remote_directory()):
+            directory_size += sum([os.path.getsize(os.path.join(root, name)) for name in files])
+        target.set_directory_size(directory_size)
+
+
+def get_function_input_size(*args, **kwargs):
+    args_size_list = []
+    for e in args:
+        if isinstance(e, GlobusFile):
+            args_size_list.append(e.file_size)
+        elif isinstance(e, GlobusDirectory):
+            args_size_list.append(e.directory_size)
+        else:
+            args_size_list.append(sys.getsizeof(e))
+    kwargs_size = 0
+    for value in kwargs.values():
+        if isinstance(value, GlobusFile):
+            kwargs_size += value.file_size
+        elif isinstance(value, GlobusDirectory):
+            kwargs_size += value.directory_size
+        else:
+            kwargs_size += sys.getsizeof(value)
+        return args_size_list, kwargs_size
+
+
+def set_output_globus_instance_size(result):
+    if isinstance(result, tuple) or isinstance(result, list):
+        for element in result:
+            judge_and_set(element)
+    else:
+        judge_and_set(result)
+
+
+def timer(func):
+    def wrapper(*args, **kwargs):
+        info_dict = {'input_size': get_function_input_size(args, kwargs)}
+        start_time = time.time()
+        # execute the function and return the maximum memory usage
+        res = memory_usage((func, args, kwargs), retval=True, max_usage=True, max_iterations=1)
+        end_time = time.time()
+        info_dict['result'] = res[1]
+        set_output_globus_instance_size(res[1])
+        info_dict['execution_time'] = end_time - start_time
+        info_dict['mem_usage'] = res[0]
+        return info_dict
+
+    return wrapper
 
 
 class MaxResultSizeExceeded(Exception):
@@ -62,14 +121,14 @@ class FuncXWorker:
     """
 
     def __init__(
-        self,
-        worker_id,
-        address,
-        port,
-        logdir,
-        debug=False,
-        worker_type="RAW",
-        result_size_limit=512000,
+            self,
+            worker_id,
+            address,
+            port,
+            logdir,
+            debug=False,
+            worker_type="RAW",
+            result_size_limit=512000,
     ):
 
         self.worker_id = worker_id
@@ -195,7 +254,10 @@ class FuncXWorker:
         f, args, kwargs = self.serializer.unpack_and_deserialize(
             task.task_buffer.decode("utf-8")
         )
-        return f(*args, **kwargs)
+        logger.info(f"** func type: {type(f)}")
+        logger.info(f"func source code {inspect.getsource(f)}")
+
+        return timer(f)(*args, **kwargs)
 
 
 def cli_run():

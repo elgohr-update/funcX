@@ -1,4 +1,4 @@
-from funcx.sdk.file import GlobusFileList
+from funcx.sdk.file import GlobusInstanceList
 from funcx.serialize import FuncXSerializer
 
 
@@ -43,8 +43,8 @@ class Batch:
         assert function_id is not None, "function_id key-word argument must be set"
         if remote_data:
             assert isinstance(
-                remote_data, GlobusFileList
-            ), "Please use GlobusFile to define your remote data"
+                remote_data, GlobusInstanceList
+            ), "Please use GlobusInstanceList to define your remote data"
 
         ser_args = self.fx_serializer.serialize(args)
         ser_kwargs = self.fx_serializer.serialize(kwargs)
