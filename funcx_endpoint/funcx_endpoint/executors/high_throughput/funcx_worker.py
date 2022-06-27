@@ -254,9 +254,6 @@ class FuncXWorker:
         f, args, kwargs = self.serializer.unpack_and_deserialize(
             task.task_buffer.decode("utf-8")
         )
-        logger.info(f"** func type: {type(f)}")
-        logger.info(f"func source code {inspect.getsource(f)}")
-
         return timer(f)(*args, **kwargs)
 
 

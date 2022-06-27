@@ -79,7 +79,7 @@ def start_endpoint(
     name : str
     endpoint_uuid : str
     """
-
+    # can't be deleted! For auth verification
     funcx_client = FuncXClient(need_transfer=True)
 
     endpoint_dir = os.path.join(manager.funcx_dir, name)
