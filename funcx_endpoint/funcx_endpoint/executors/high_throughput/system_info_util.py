@@ -4,7 +4,7 @@ import psutil
 class SystemInfoUtil:
 
     @staticmethod
-    def get_current_cpu_info(interval=0.2):
+    def get_current_cpu_info(interval=0.1):
         cpu_info = {}
         cpu_percent = psutil.cpu_times_percent(interval=interval)
         cpu_info['cores'] = psutil.cpu_count()
