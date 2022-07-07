@@ -2,20 +2,20 @@ import logging
 import threading
 import time
 from funcx_endpoint.executors.high_throughput.system_info_util import SystemInfoUtil
-from queue import Queue
 logger = logging.getLogger(__name__)
 
 class LocalMonitor:
 
-    def __init__(self, monitor_interval=1,):
+    def __init__(self, monitor_freq=1, record_duration=60):
         self._kill_event = threading.Event()
         self._monitor_thread = threading.Thread(target=self.start,
                                                 args=(self._kill_event,),
                                                 name="Local-Monitor-Thread")
-        self.monitor_interval = monitor_interval
+        self.monitor_freq = monitor_freq
+        self.record_duration = record_duration
         self.threading_lock = threading.Lock()
         self.info_list = []
-        self.max_size = 10
+        self.max_size = record_duration / monitor_freq
 
 
     """
@@ -25,7 +25,7 @@ class LocalMonitor:
 
     def start(self, kill_event):
         while not kill_event.is_set():
-            time.sleep(self.monitor_interval)
+            time.sleep(self.monitor_freq)
             info = self.get_system_info()
             with self.threading_lock:
                 while len(self.info_list) >= self.max_size > 0:
