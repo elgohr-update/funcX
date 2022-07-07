@@ -4,6 +4,7 @@ import time
 from funcx_endpoint.executors.high_throughput.system_info_util import SystemInfoUtil
 logger = logging.getLogger(__name__)
 
+
 class LocalMonitor:
 
     def __init__(self, monitor_freq=1, record_duration=60):
@@ -16,7 +17,6 @@ class LocalMonitor:
         self.threading_lock = threading.Lock()
         self.info_list = []
         self.max_size = record_duration / monitor_freq
-
 
     """
     Starting stage:
