@@ -12,6 +12,7 @@ class LocalMonitor:
         self._monitor_thread = threading.Thread(target=self.start,
                                                 args=(self._kill_event,),
                                                 name="Local-Monitor-Thread")
+        self._monitor_thread.start()
         self.monitor_freq = monitor_freq
         self.record_duration = record_duration
         self.threading_lock = threading.Lock()
@@ -25,12 +26,12 @@ class LocalMonitor:
 
     def start(self, kill_event):
         while not kill_event.is_set():
-            time.sleep(self.monitor_freq)
             info = self.get_system_info()
             with self.threading_lock:
                 while len(self.info_list) >= self.max_size > 0:
                     self.info_list.pop(0)
                 self.info_list.append(info)
+            time.sleep(self.monitor_freq)
         return
 
     @staticmethod

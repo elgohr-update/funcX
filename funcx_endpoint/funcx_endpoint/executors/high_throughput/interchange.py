@@ -151,6 +151,7 @@ class Interchange:
             globus_ep_id=None,
             local_data_path=None,
             globus_polling_interval=10,
+            monitor=None
     ):
         """
         Parameters
@@ -305,6 +306,7 @@ class Interchange:
             self.fxs = FuncXClient()
         # Globus transfer
         self.data_staging = False
+        self.monitor = monitor
         self.globus_ep_id = globus_ep_id
         self.globus_data_path = None
         if self.globus_ep_id is not None:
@@ -1338,7 +1340,8 @@ class Interchange:
                 "globus_data_path": self.globus_data_path
             },
         }
-
+        local_monitor_info = self.monitor.get_avg_info()
+        result_package["info"] = dict(result_package["info"], **local_monitor_info)
         self.last_core_hr_counter = core_hrs
         return result_package
 

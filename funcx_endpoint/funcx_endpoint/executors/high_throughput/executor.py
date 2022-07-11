@@ -36,7 +36,7 @@ from funcx_endpoint.executors.high_throughput.messages import (
     Task,
 )
 from funcx_endpoint.strategies.simple import SimpleStrategy
-
+from funcx_endpoint.executors.high_throughput.local_monitor import LocalMonitor
 fx_serializer = FuncXSerializer()
 
 # TODO: YADU There's a bug here which causes some of the log messages to write out to
@@ -259,6 +259,7 @@ class HighThroughputExecutor(StatusHandlingExecutor, RepresentationMixin):
         globus_ep_id=None,
         local_data_path=None,
         globus_polling_interval=10,
+        monitor=LocalMonitor()
     ):
         self.globus_ep_id = globus_ep_id
         self.local_data_path = local_data_path
@@ -315,6 +316,7 @@ class HighThroughputExecutor(StatusHandlingExecutor, RepresentationMixin):
         self.container_image = container_image
         self.worker_mode = worker_mode
         self.last_response_time = time.time()
+        self.monitor = monitor
 
         if not launch_cmd:
             self.launch_cmd = (
@@ -474,6 +476,7 @@ class HighThroughputExecutor(StatusHandlingExecutor, RepresentationMixin):
                 "globus_ep_id": self.globus_ep_id,
                 "local_data_path": self.local_data_path,
                 "globus_polling_interval": self.globus_polling_interval,
+                "monitor": self.monitor
             },
         )
         self.queue_proc.start()
