@@ -46,7 +46,7 @@ def get_function_input_size(*args, **kwargs):
             kwargs_size += value.directory_size
         else:
             kwargs_size += sys.getsizeof(value)
-        return args_size_list, kwargs_size
+    return args_size_list, kwargs_size
 
 
 def set_output_globus_instance_size(result):

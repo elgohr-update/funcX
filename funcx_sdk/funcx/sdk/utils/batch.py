@@ -26,7 +26,7 @@ class Batch:
         ----------
         *args : Any
             Args as specified by the function signature
-        remote_data : GlobusFileList object
+        remote_data : GlobusInstanceList object
             remote data path. Optional
         endpoint_id : uuid str
             Endpoint UUID string. Required

@@ -19,9 +19,10 @@ from parsl.dataflow.error import ConfigurationError
 from parsl.executors.errors import BadMessage, ScalingFailed
 
 # from parsl.executors.base import ParslExecutor
-from parsl.executors.status_handling import StatusHandlingExecutor
+from parsl.executors.status_handling import BlockProviderExecutor
 from parsl.providers import LocalProvider
 from parsl.utils import RepresentationMixin
+from typing import Union
 
 from funcx import set_file_logger
 from funcx.serialize import FuncXSerializer
@@ -37,6 +38,7 @@ from funcx_endpoint.executors.high_throughput.messages import (
 )
 from funcx_endpoint.strategies.simple import SimpleStrategy
 from funcx_endpoint.executors.high_throughput.local_monitor import LocalMonitor
+
 fx_serializer = FuncXSerializer()
 
 # TODO: YADU There's a bug here which causes some of the log messages to write out to
@@ -52,7 +54,7 @@ BUFFER_THRESHOLD = 1024 * 1024
 ITEM_THRESHOLD = 1024
 
 
-class HighThroughputExecutor(StatusHandlingExecutor, RepresentationMixin):
+class HighThroughputExecutor(BlockProviderExecutor, RepresentationMixin):
     """Executor designed for cluster-scale
 
     The HighThroughputExecutor system has the following components:
@@ -220,52 +222,52 @@ class HighThroughputExecutor(StatusHandlingExecutor, RepresentationMixin):
     """
 
     def __init__(
-        self,
-        label="HighThroughputExecutor",
-        # NEW
-        strategy=SimpleStrategy(),
-        max_workers_per_node=float("inf"),
-        mem_per_worker=None,
-        launch_cmd=None,
-        # Container specific
-        worker_mode="no_container",
-        scheduler_mode="hard",
-        container_type=None,
-        container_cmd_options="",
-        cold_routing_interval=10.0,
-        # Tuning info
-        prefetch_capacity=10,
-        provider=LocalProvider(),
-        address="127.0.0.1",
-        worker_ports=None,
-        worker_port_range=(54000, 55000),
-        interchange_port_range=(55000, 56000),
-        storage_access=None,
-        working_dir=None,
-        worker_debug=False,
-        cores_per_worker=1.0,
-        heartbeat_threshold=120,
-        heartbeat_period=30,
-        poll_period=10,
-        container_image=None,
-        suppress_failure=False,
-        run_dir=None,
-        endpoint_id=None,
-        managed=True,
-        interchange_local=True,
-        passthrough=True,
-        funcx_service_address=None,
-        task_status_queue=None,
-        globus_ep_id=None,
-        local_data_path=None,
-        globus_polling_interval=10,
-        monitor=LocalMonitor()
+            self,
+            label="HighThroughputExecutor",
+            # NEW
+            strategy=SimpleStrategy(),
+            max_workers_per_node=float("inf"),
+            mem_per_worker=None,
+            launch_cmd=None,
+            # Container specific
+            worker_mode="no_container",
+            scheduler_mode="hard",
+            container_type=None,
+            container_cmd_options="",
+            cold_routing_interval=10.0,
+            # Tuning info
+            prefetch_capacity=10,
+            provider=LocalProvider(),
+            address="127.0.0.1",
+            worker_ports=None,
+            worker_port_range=(54000, 55000),
+            interchange_port_range=(55000, 56000),
+            storage_access=None,
+            working_dir=None,
+            worker_debug=False,
+            cores_per_worker=1.0,
+            heartbeat_threshold=120,
+            heartbeat_period=30,
+            poll_period=10,
+            container_image=None,
+            suppress_failure=False,
+            run_dir=None,
+            endpoint_id=None,
+            managed=True,
+            interchange_local=True,
+            passthrough=True,
+            funcx_service_address=None,
+            task_status_queue=None,
+            globus_ep_id=None,
+            local_data_path=None,
+            globus_polling_interval=10,
+            monitor=LocalMonitor()
     ):
         self.globus_ep_id = globus_ep_id
         self.local_data_path = local_data_path
         self.globus_polling_interval = globus_polling_interval
         logger.debug("Initializing HighThroughputExecutor")
-        StatusHandlingExecutor.__init__(self, provider)
+        BlockProviderExecutor.__init__(self, provider)
 
         self.label = label
         self.launch_cmd = launch_cmd
@@ -436,7 +438,7 @@ class HighThroughputExecutor(StatusHandlingExecutor, RepresentationMixin):
         get the worker task and result ports that the interchange has bound to.
         """
         comm_q = mpQueue(maxsize=10)
-        print(f"Starting local interchange with endpoint id: {self.endpoint_id}")
+        print(f" Starting local interchange with endpoint id: {self.endpoint_id}")
         self.queue_proc = Process(
             target=interchange.starter,
             args=(comm_q,),
@@ -893,9 +895,18 @@ class HighThroughputExecutor(StatusHandlingExecutor, RepresentationMixin):
         logger.info("Finished HighThroughputExecutor shutdown attempt")
         return True
 
+    @property
+    def workers_per_node(self) -> Union[int, float]:
+        return self.max_workers_per_node
+
+    def _get_launch_command(self, block_id: str) -> str:
+        if self.launch_cmd is None:
+            raise ScalingFailed(self.provider.label, "No launch command")
+        launch_cmd = self.launch_cmd.format(block_id=block_id)
+        return launch_cmd
+
 
 def executor_starter(htex, logdir, endpoint_id, logging_level=logging.DEBUG):
-
     stdout = open(os.path.join(logdir, f"executor.{endpoint_id}.stdout"), "w")
     stderr = open(os.path.join(logdir, f"executor.{endpoint_id}.stderr"), "w")
 
