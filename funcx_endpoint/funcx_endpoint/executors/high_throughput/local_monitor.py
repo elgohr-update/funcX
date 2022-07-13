@@ -12,6 +12,7 @@ class LocalMonitor:
         self._monitor_thread = threading.Thread(target=self.start,
                                                 args=(self._kill_event,),
                                                 name="Local-Monitor-Thread")
+        self._monitor_thread.daemon = True
         self._monitor_thread.start()
         self.monitor_freq = monitor_freq
         self.record_duration = record_duration

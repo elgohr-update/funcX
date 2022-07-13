@@ -39,7 +39,7 @@ REQUIRES = [
     # 'parsl' is a core requirement of the funcx-endpoint, essential to a range
     # of different features and functions
     # pin exact versions because it does not use semver
-    "parsl==1.3.0",
+    "parsl==1.2.0",
 ]
 
 TEST_REQUIRES = [
