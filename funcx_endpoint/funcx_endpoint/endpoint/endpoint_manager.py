@@ -110,7 +110,7 @@ class EndpointManager:
             print(f"config dir <{self.name}> already exsits")
             raise Exception("ConfigExists")
 
-    def init_endpoint(self):
+    def init_endpoint(self, funcx_service_address):
         """Setup funcx dirs and default endpoint config files
 
         TODO : Every mechanism that will update the config file, must be using a
@@ -120,7 +120,7 @@ class EndpointManager:
 
         [1] https://docs.python.org/3/library/fcntl.html
         """
-        _ = FuncXClient()
+        _ = FuncXClient(funcx_service_address=funcx_service_address)
 
         if os.path.exists(self.funcx_config_file):
             typer.confirm(

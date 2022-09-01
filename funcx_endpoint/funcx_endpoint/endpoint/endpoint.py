@@ -164,6 +164,12 @@ def main(
         "-c",
         help="override default config dir",
     ),
+    funcx_service_address: str =typer.Option(
+        "https://api2.funcx.org/v2",
+        "--web_address",
+        "-w",
+        help="override default funcx service address",
+    ),
 ):
     # Note: no docstring here; the docstring for @app.callback is used as a help
     # message for overall app.
@@ -183,6 +189,15 @@ def main(
 
     global manager
     manager = EndpointManager(funcx_dir=config_dir, debug=debug)
+    logger.info(
+            "config %s",
+            config_dir,
+        )
+
+    logger.info(
+            "web %s",
+            funcx_service_address,
+        )
 
     # Otherwise, we ensure that configs exist
     if not os.path.exists(manager.funcx_config_file):
@@ -190,7 +205,7 @@ def main(
             "No existing configuration found at %s. Initializing...",
             manager.funcx_config_file,
         )
-        manager.init_endpoint()
+        manager.init_endpoint(funcx_service_address=funcx_service_address)
 
     logger.debug(f"Loading config files from {manager.funcx_dir}")
 
