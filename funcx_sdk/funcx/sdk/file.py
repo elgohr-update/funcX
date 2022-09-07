@@ -102,7 +102,7 @@ class GlobusDirectory:
         self.directory_size = size
 
 
-# GlobusInstanceList is only used for internal transmission
+# GlobusInstanceList is only invoked for internal program (funcX-executor)
 class GlobusInstanceList:
     def __init__(self, instance_list, pre_trans=False):
         self.instance_list = instance_list
@@ -113,8 +113,10 @@ class GlobusInstanceList:
             return ""
         url = ""
         for file in self.instance_list:
-            recursive = False
             if isinstance(file, GlobusDirectory):
                 recursive = True
-            url += f"globus://{file.endpoint}/{file.path}:{recursive}|"
+                url += f"globus://{file.endpoint}/{file.directory_path}:{recursive}|"
+            elif isinstance(file, GlobusFile):
+                recursive = False
+                url += f"globus://{file.endpoint}/{file.file_path}:{recursive}|"
         return url
