@@ -596,9 +596,14 @@ class Interchange:
                     parsed_url = urlparse(globus_url)
                     src_ep = parsed_url.netloc
                     src_path = parsed_url.path
+                    src_dir = src_path
                     basename = os.path.basename(src_path)
-                    # if the dst_ep equals to src_ep, don't transfer the data.
-                    if src_ep == self.gtc.dst_ep:
+                    if not recursive and len(basename) > 0:
+                        src_dir = src_dir[:-len(basename)]
+                    # if the (dst_ep,dest_path equal) to (src_ep, src_dir), don't transfer the data.
+                    if src_ep == self.gtc.dst_ep and src_dir == self.gtc.local_path:
+                        logger.info("[TRANSFER_SUBMIT_THREAD] Skip the transfer task, since the destination path is "
+                                    "not changed")
                         continue
                     else:
                         need_to_trans += 1
