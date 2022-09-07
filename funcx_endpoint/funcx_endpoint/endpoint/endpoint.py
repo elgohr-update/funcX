@@ -194,11 +194,6 @@ def main(
             config_dir,
         )
 
-    logger.info(
-            "web %s",
-            funcx_service_address,
-        )
-
     # Otherwise, we ensure that configs exist
     if not os.path.exists(manager.funcx_config_file):
         logger.info(
