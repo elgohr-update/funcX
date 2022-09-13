@@ -47,6 +47,9 @@ class code_dill_source(fxPicker_shared):
     def serialize(self, data):
         name = data.__name__
         body = dill.source.getsource(data)
+        decorator_name = "@python_app"
+        if len(body) > len(decorator_name) and body[:len(decorator_name)] == decorator_name:
+            body = body[len(decorator_name)+1:]
         x = codecs.encode(pickle.dumps((name, body)), "base64").decode()
         return self.identifier + x
 
