@@ -113,7 +113,7 @@ class FuncXSerializer:
             for method in self.methods_for_code.values():
                 try:
                     serialized = method.serialize(data)
-                    self.deserialize_check(serialized)
+                    # self.deserialize_check(serialized)
                 except Exception as e:
                     logger.debug(
                         f"[NON-CRITICAL] Method {method} failed with exception: {e}"

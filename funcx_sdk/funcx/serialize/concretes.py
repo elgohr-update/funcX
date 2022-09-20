@@ -71,7 +71,7 @@ class code_text_inspect(fxPicker_shared):
     """
 
     _identifier = "03\n"
-    _for_code = True
+    _for_code = False
 
     def __init__(self):
         super().__init__()
@@ -99,7 +99,7 @@ class code_dill(fxPicker_shared):
     """
 
     _identifier = "01\n"
-    _for_code = True
+    _for_code = False
 
     def __init__(self):
         super().__init__()
@@ -126,7 +126,7 @@ class code_pickle(fxPicker_shared):
     """
 
     _identifier = "02\n"
-    _for_code = True
+    _for_code = False
 
     def __init__(self):
         super().__init__()
