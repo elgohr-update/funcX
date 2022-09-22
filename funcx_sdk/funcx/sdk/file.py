@@ -115,8 +115,12 @@ class GlobusInstanceList:
         for file in self.instance_list:
             if isinstance(file, GlobusDirectory):
                 recursive = True
-                url += f"globus://{file.endpoint}/{file.directory_path}:{recursive}|"
+                """
+                There is no dash between endpoint and directory path.
+                Because the unix path will involes a '/' at the beginning.
+                """
+                url += f"globus://{file.endpoint}{file.directory_path}:{recursive}|"
             elif isinstance(file, GlobusFile):
                 recursive = False
-                url += f"globus://{file.endpoint}/{file.file_path}:{recursive}|"
+                url += f"globus://{file.endpoint}{file.file_path}:{recursive}|"
         return url

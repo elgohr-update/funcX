@@ -96,4 +96,6 @@ class Config(RepresentationMixin):
         # Globus transfer info
         self.globus_ep_id = globus_ep_id
         self.globus_polling_interval = globus_polling_interval
+        if local_data_path is not None and not local_data_path.endswith("/"):
+            local_data_path = local_data_path+"/"
         self.local_data_path = local_data_path

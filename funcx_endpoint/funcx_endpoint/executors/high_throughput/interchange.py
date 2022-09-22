@@ -601,6 +601,8 @@ class Interchange:
                     if not recursive and len(basename) > 0:
                         src_dir = src_dir[:-len(basename)]
                     # if the (dst_ep,dest_path equal) to (src_ep, src_dir), don't transfer the data.
+                    logger.info("[TRANSFER_SUBMIT_THREAD] src_path is {}".format(src_path))
+                    logger.info("[TRANSFER_SUBMIT_THREAD] src_ep is {} and the src_dir is :".format(src_ep, src_dir))
                     if src_ep == self.gtc.dst_ep and src_dir == self.gtc.local_path:
                         logger.info("[TRANSFER_SUBMIT_THREAD] Skip the transfer task, since the destination path is "
                                     "not changed")
