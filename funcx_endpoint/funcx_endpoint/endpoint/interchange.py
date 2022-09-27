@@ -606,6 +606,8 @@ class EndpointInterchange:
         executor = list(self.executors.values())[0]
         last = time.time()
 
+        show_result_address = False
+
         while not self._quiesce_event.is_set():
             if last + self.heartbeat_threshold < time.time():
                 logger.debug("[MAIN] alive")
@@ -644,8 +646,10 @@ class EndpointInterchange:
 
                 # results will be a pickled dict with task_id, container_id,
                 # and results/exception
-                logger.info(f"Result address is : {self.client_address}")
-                logger.info(f"Result port is : {self.client_address}")
+                if not show_result_address:
+                    logger.info(f"Result address is : {self.client_address}")
+                    logger.info(f"Result port is : {self.client_address}")
+                    show_result_address = True
                 self.results_outgoing.put("forwarder", results["message"])
 
             except queue.Empty:
