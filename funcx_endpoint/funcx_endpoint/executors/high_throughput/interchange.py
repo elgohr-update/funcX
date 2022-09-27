@@ -4,6 +4,7 @@ import collections
 import json
 import logging
 import os
+import pathlib
 import pickle
 import platform
 import queue
@@ -20,6 +21,7 @@ from parsl.executors.errors import ScalingFailed
 from parsl.version import VERSION as PARSL_VERSION
 
 from funcx import set_file_logger
+from funcx_endpoint.executors.high_throughput.execution_recorder import ExecutionRecorder
 from funcx.sdk.client import FuncXClient
 from funcx.serialize import FuncXSerializer
 from funcx_endpoint.data_transfer.globus import GlobusTransferClient
@@ -320,6 +322,13 @@ class Interchange:
                 local_path=self.globus_data_path,
                 funcx_ep_id=endpoint_id,
             )
+            
+        
+        # Record the exection information
+        self.execution_recorder = ExecutionRecorder()
+        self._FUNCX_HOME = os.path.join(pathlib.Path.home(), ".funcx")
+        self._FUNCX_EXECUTION_RECORD = os.path.join(self._FUNCX_HOME, "execution_record")
+
 
         self.globus_polling_interval = globus_polling_interval
         self.active_transfers = {}
@@ -1187,6 +1196,7 @@ class Interchange:
                                 r, manager
                             )
                         )
+                        self._record_execution_result_information(result=r)
                         task_type = self.containers[r["container_id"]]
                         if r["task_id"] in self.task_status_deltas:
                             del self.task_status_deltas[r["task_id"]]
@@ -1455,6 +1465,23 @@ class Interchange:
             logger.debug(f"[MAIN] The status is {status}")
 
         return status
+
+
+    def _record_execution_result_information(self, result):
+        """Record execution information for a task.
+
+        Parameters
+        ----------
+        result : object
+            result got from the worker
+        """
+       
+        logger.info(f"Recording execution result information for task {result}")
+        task_id = result["task_id"]
+        result = self.serializer.deserialize(result["result"])
+        logger.info(f"Deserialized result: {result}")
+        self.execution_recorder.write_record(task_id, result)
+        
 
 
 def starter(comm_q, *args, **kwargs):
