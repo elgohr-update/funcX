@@ -68,6 +68,7 @@ def timer(func):
         set_output_globus_instance_size(res[1])
         info_dict['execution_time'] = end_time - start_time
         info_dict['mem_usage'] = res[0]
+        info_dict['func_name'] = func.__name__
         return info_dict
 
     return wrapper
