@@ -62,14 +62,12 @@ class ExecutionRecorder:
 
         if self.doing_record : 
             # information be append to a record file, so the file should be opened in append mode
+                
             with open(self.latest_record_file, "a") as f:
-                result_copy = result.copy()
-                # remove the result from the result dict
-                # because the result is not necessary for predict execution time
-                del result_copy["result"]
-                result_copy["task_id"] = task_id
-                f = csv.DictWriter(f, result_copy.keys())
-                f.writerow(result_copy)
+                info_list = [task_id, result.get("func_name"), result.get("input_size"),
+                            result.get("execution_time"), result.get("mem_usage")]
+                f = csv.writer(f, quoting=csv.QUOTE_NONE)
+                f.writerow(info_list)
 
             # get the size of record file
             file_size = os.stat(self.latest_record_file).st_size / (1024*1024)

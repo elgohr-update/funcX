@@ -35,23 +35,59 @@ def judge_and_set(target):
 
 
 def get_function_input_size(*args, **kwargs):
+
     args_size = 0
-    for e in args:
-        if isinstance(e, GlobusFile):
-            args_size += e.file_size
-        elif isinstance(e, GlobusDirectory):
-            args_size += e.directory_size
+    for arg in args:
+        """
+        The args could consist of a tuple and a dict
+        e.g. args = [(globusfile,1,2) , {"size":1} ]
+        """
+        if isinstance(arg, tuple) or isinstance(arg, list):
+            for e in arg:
+                args_size += get_size_of_object(e)
+        elif isinstance(arg, dict):
+            for value in arg.values():
+                args_size += get_size_of_object(value)
+        elif isinstance(arg, GlobusFile):
+            args_size += arg.file_size
+        elif isinstance(arg, GlobusDirectory):
+            args_size += arg.directory_size
         else:
-            args_size += sys.getsizeof(e)
+            args_size += sys.getsizeof(arg)
     kwargs_size = 0
     for value in kwargs.values():
-        if isinstance(value, GlobusFile):
-            kwargs_size += value.file_size
-        elif isinstance(value, GlobusDirectory):
-            kwargs_size += value.directory_size
-        else:
-            kwargs_size += sys.getsizeof(value)
+        kwargs_size += get_size_of_object(value)
     return args_size + kwargs_size
+
+def get_size_of_object(target):
+    if isinstance(target, tuple) or isinstance(target, list):
+        """
+        since the size of a tuple is not the sum of all elements
+        only when there is a globusfile, we add elements up
+        otherwise, using sys.getsizeof
+        """
+        exists_file = False
+        size = 0
+        for e in target:
+            if isinstance(e, GlobusFile):
+                size += e.file_size
+                exists_file = True
+            elif isinstance(e, GlobusDirectory):
+                size += e.directory_size
+                exists_file = True
+            else:
+                size += sys.getsizeof(e)
+        if not exists_file:
+            return sys.getsizeof(tagert)
+        else:
+            return size
+    elif isinstance(target, GlobusFile):
+        return target.file_size
+    elif isinstance(target, GlobusDirectory):
+        return target.directory_size
+    else :
+        return sys.getsizeof(target)
+    
 
 
 def set_output_globus_instance_size(result):
@@ -77,6 +113,7 @@ def timer(func):
         info_dict['execution_time'] = end_time - start_time
         info_dict['mem_usage'] = res[0]
         info_dict['func_name'] = func.__name__
+
         return info_dict
 
     return wrapper
