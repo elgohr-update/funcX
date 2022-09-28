@@ -18,7 +18,12 @@ import time
 from memory_profiler import memory_usage
 
 
+
 def judge_and_set(target):
+    """
+    Judge a file whether it is a globus file or not.
+    If it is, set the file size.
+    """
     if isinstance(target, GlobusFile):
         file_size = os.path.getsize(target.get_remote_file_path())
         target.set_file_size(file_size)
@@ -46,10 +51,13 @@ def get_function_input_size(*args, **kwargs):
             kwargs_size += value.directory_size
         else:
             kwargs_size += sys.getsizeof(value)
-    return args_size_list, kwargs_size
+    return args_size_list+kwargs_size
 
 
 def set_output_globus_instance_size(result):
+    """
+    For handling globusfile stored in a list
+    """
     if isinstance(result, tuple) or isinstance(result, list):
         for element in result:
             judge_and_set(element)
