@@ -1478,9 +1478,12 @@ class Interchange:
        
         logger.info(f"Recording execution result information for task {result}")
         task_id = result["task_id"]
-        result = self.serializer.deserialize(result["result"])
-        logger.info(f"Deserialized result: {result}")
-        self.execution_recorder.write_record(task_id, result)
+        if "result" in result.keys(): 
+            result = self.serializer.deserialize(result["result"])
+            logger.info(f"Deserialized result: {result}")
+            self.execution_recorder.write_record(task_id, result)
+        else:
+            logger.info(f"Result is not in the result keys since execption: {result.keys()}")
         
 
 

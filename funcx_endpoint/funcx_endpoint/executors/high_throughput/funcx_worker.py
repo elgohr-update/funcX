@@ -35,14 +35,14 @@ def judge_and_set(target):
 
 
 def get_function_input_size(*args, **kwargs):
-    args_size_list = []
+    args_size = 0
     for e in args:
         if isinstance(e, GlobusFile):
-            args_size_list.append(e.file_size)
+            args_size += e.file_size
         elif isinstance(e, GlobusDirectory):
-            args_size_list.append(e.directory_size)
+            args_size += e.directory_size
         else:
-            args_size_list.append(sys.getsizeof(e))
+            args_size += sys.getsizeof(e)
     kwargs_size = 0
     for value in kwargs.values():
         if isinstance(value, GlobusFile):
@@ -51,7 +51,7 @@ def get_function_input_size(*args, **kwargs):
             kwargs_size += value.directory_size
         else:
             kwargs_size += sys.getsizeof(value)
-    return args_size_list+kwargs_size
+    return args_size + kwargs_size
 
 
 def set_output_globus_instance_size(result):
