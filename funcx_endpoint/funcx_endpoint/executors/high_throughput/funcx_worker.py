@@ -6,6 +6,7 @@ import os
 import pickle
 import sys
 import inspect
+import psutil
 
 import zmq
 from parsl.app.errors import RemoteExceptionWrapper
@@ -104,6 +105,9 @@ def set_output_globus_instance_size(result):
 def timer(func):
     def wrapper(*args, **kwargs):
         info_dict = {'input_size': get_function_input_size(args, kwargs)}
+        mem_stat = psutil.virtual_memory()
+        info_dict['mem_avaliable'] =  mem_stat.available
+        info_dict['cpu_percent'] = psutil.cpu_percent()
         start_time = time.time()
         # execute the function and return the maximum memory usage
         res = memory_usage((func, args, kwargs), retval=True, max_usage=True, max_iterations=1)

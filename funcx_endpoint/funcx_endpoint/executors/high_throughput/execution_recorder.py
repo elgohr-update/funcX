@@ -65,6 +65,7 @@ class ExecutionRecorder:
                 
             with open(self.latest_record_file, "a") as f:
                 info_list = [task_id, result.get("func_name"), result.get("input_size"),
+                            result.get("mem_avaliable"), result.get("cpu_percent"),
                             result.get("execution_time"), result.get("mem_usage")]
                 f = csv.writer(f, quoting=csv.QUOTE_NONE)
                 f.writerow(info_list)
