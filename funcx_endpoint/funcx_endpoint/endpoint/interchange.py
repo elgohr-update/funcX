@@ -239,7 +239,8 @@ class EndpointInterchange:
             logger.info(f"Initializing executor: {executor.label}")
             executor.funcx_service_address = self.config.funcx_service_address
             executor.globus_ep_id = self.config.globus_ep_id
-            logger.info(f"Globus_ep_id : {self.config.globus_ep_id}")
+            executor.rsync_ip = self.config.rsync_ip
+            executor.rsync_username = self.config.rsync_username
             executor.local_data_path = self.config.local_data_path
             executor.globus_polling_interval = self.config.globus_polling_interval
             if not executor.endpoint_id:

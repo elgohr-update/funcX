@@ -78,7 +78,9 @@ class Manager:
         # TODO : This should be 10ms
         poll_period=100,
         local_data_path="",
-        globus_endpoint_id="",
+        globus_ep_id="",
+        rsync_ip="",
+        rsync_username="",
     ):
         """
         Parameters
@@ -239,9 +241,13 @@ class Manager:
         self.task_done_counter = 0
 
         self.local_data_path = local_data_path
-        self.globus_endpoint_id = globus_endpoint_id
+        self.globus_ep_id = globus_ep_id
+        self.rsync_ip = rsync_ip
+        self.rsync_username = rsync_username
         os.environ["LOCAL_PATH"] = self.local_data_path
-        os.environ["GLOBUS_EP_ID"] = self.globus_endpoint_id
+        os.environ["GLOBUS_EP_ID"] = self.globus_ep_id
+        os.environ["RSYNC_IP"] = self.rsync_ip
+        os.environ["RSYNC_USERNAME"] = self.rsync_username
 
     def create_reg_message(self):
         """Creates a registration message to identify the worker to the interchange"""
@@ -770,7 +776,15 @@ def cli_run():
     )
 
     parser.add_argument(
-        "--globus_endpoint_id", default="", help="For setting globus ep id"
+        "--globus_ep_id", default="", help="For setting globus ep id"
+    )
+
+    parser.add_argument(
+        "--rsync_ip", default="", help="For setting rsync ip"
+    )
+
+    parser.add_argument(
+        "--rsync_username", default="", help="For setting rsync_username"
     )
 
     args = parser.parse_args()
@@ -802,7 +816,9 @@ def cli_run():
         logger.info(f"cores_per_worker: {args.cores_per_worker}")
         logger.info(f"task_url: {args.task_url}")
         logger.info(f"local_path: {args.local_data_path}")
-        logger.info(f"globus_endpoint_id: {args.globus_endpoint_id}")
+        logger.info(f"globus_ep_id: {args.globus_ep_id}")
+        logger.info(f"rsync_ip: {args.rsync_ip}")
+        logger.info(f"rsync_username: {args.rsync_username}")
         logger.info(f"result_url: {args.result_url}")
         logger.info(f"hb_period: {args.hb_period}")
         logger.info(f"hb_threshold: {args.hb_threshold}")
@@ -834,7 +850,9 @@ def cli_run():
             worker_type=args.worker_type,
             poll_period=int(args.poll),
             local_data_path=args.local_data_path,
-            globus_endpoint_id=args.globus_endpoint_id,
+            globus_ep_id=args.globus_ep_id,
+            rsync_ip=args.rsync_ip,
+            rsync_username=args.rsync_username
         )
         manager.start()
 

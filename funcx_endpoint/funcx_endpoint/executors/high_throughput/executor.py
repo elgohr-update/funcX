@@ -259,11 +259,16 @@ class HighThroughputExecutor(BlockProviderExecutor, RepresentationMixin):
             funcx_service_address=None,
             task_status_queue=None,
             globus_ep_id=None,
+            rsync_ip=None,
+            rsync_username=None,
             local_data_path=None,
             globus_polling_interval=10,
             monitor=LocalMonitor()
     ):
+        # These attributes are used by the interchange
         self.globus_ep_id = globus_ep_id
+        self.rsync_ip = rsync_ip
+        self.rsync_username = rsync_username
         self.local_data_path = local_data_path
         self.globus_polling_interval = globus_polling_interval
         logger.debug("Initializing HighThroughputExecutor")
@@ -476,6 +481,8 @@ class HighThroughputExecutor(BlockProviderExecutor, RepresentationMixin):
                 "endpoint_id": self.endpoint_id,
                 "logging_level": logging.DEBUG if self.worker_debug else logging.INFO,
                 "globus_ep_id": self.globus_ep_id,
+                "rsync_ip": self.rsync_ip,
+                "rsync_username": self.rsync_username,
                 "local_data_path": self.local_data_path,
                 "globus_polling_interval": self.globus_polling_interval,
                 "monitor": self.monitor

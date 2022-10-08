@@ -25,6 +25,7 @@ from funcx_endpoint.executors.high_throughput.execution_recorder import Executio
 from funcx.sdk.client import FuncXClient
 from funcx.serialize import FuncXSerializer
 from funcx_endpoint.data_transfer.globus import GlobusTransferClient
+from funcx_endpoint.data_transfer.rsync import RsyncTransferClient
 from funcx_endpoint.executors.high_throughput.interchange_task_dispatch import (
     naive_interchange_task_dispatch,
 )
@@ -151,6 +152,8 @@ class Interchange:
             log_max_bytes=256 * 1024 * 1024,
             log_backup_count=1,
             globus_ep_id=None,
+            rsync_ip=None,
+            rsync_username=None,
             local_data_path=None,
             globus_polling_interval=10,
             monitor=None
@@ -261,7 +264,6 @@ class Interchange:
         self.provider = provider
         self.worker_debug = worker_debug
         self.scaling_enabled = scaling_enabled
-        #
 
         self.strategy = strategy
         self.client_address = client_address
@@ -310,18 +312,30 @@ class Interchange:
         self.data_staging = False
         self.monitor = monitor
         self.globus_ep_id = globus_ep_id
-        self.globus_data_path = None
-        if self.globus_ep_id is not None:
-            print(f"Initiating Globus transfer client {self.globus_ep_id}")
+        self.rsync_ip = rsync_ip
+        self.rsync_username = rsync_username
+        self.local_data_path = None
+        if self.globus_ep_id is not None or self.rsync_ip is not None:
+            
             self.data_staging = True
-            self.globus_data_path = local_data_path
-            if self.globus_data_path is None:
-                self.globus_data_path = f"{self.logdir}/data/"
-            self.gtc = GlobusTransferClient(
-                dst_ep=self.globus_ep_id,
-                local_path=self.globus_data_path,
-                funcx_ep_id=endpoint_id,
-            )
+            self.local_data_path = local_data_path
+            if self.local_data_path is None:
+                self.local_data_path = f"{self.logdir}/data/"
+            if self.globus_ep_id is not None:
+                #dtc means DataTransferClient()
+                logger.info(f"Initiating Globus transfer client {self.globus_ep_id}")
+                self.dtc = GlobusTransferClient(
+                    dst_ep=self.globus_ep_id,
+                    local_path=self.local_data_path,
+                    funcx_ep_id=endpoint_id,
+                )
+            elif self.rsync_ip is not None:
+                logger.info(f"Initiating Rsync transfer client {self.rsync_username}:{self.rsync_ip}")
+                self.dtc = RsyncTransferClient(
+                    local_path = self.local_data_path,
+                    dst_ep = self.rsync_ip,
+                    username = self.rsync_username
+                )
             
         
         # Record the exection information
@@ -398,7 +412,9 @@ class Interchange:
                 "--log_backup_count={log_backup_count} "
                 "--worker_type={{worker_type}} "
                 "--local_data_path={local_data_path} "
-                "--globus_endpoint_id={globus_endpoint_id} "
+                "--globus_ep_id={globus_ep_id} "
+                "--rsync_ip={rsync_ip} "
+                "--rsync_username={rsync_username} "
             )
 
         self.current_platform = {
@@ -471,8 +487,10 @@ class Interchange:
             logdir=working_dir,
             log_max_bytes=self.log_max_bytes,
             log_backup_count=self.log_backup_count,
-            local_data_path=self.globus_data_path,
-            globus_endpoint_id=self.globus_ep_id,
+            local_data_path=self.local_data_path,
+            globus_ep_id=self.globus_ep_id,
+            rsync_ip=self.rsync_ip,
+            rsync_username=self.rsync_username
         )
 
         self.launch_cmd = l_cmd
@@ -525,7 +543,7 @@ class Interchange:
                             transfer_task
                         )
                     )
-                    transfer_status = self.gtc.status(transfer_task)
+                    transfer_status = self.dtc.status(transfer_task)
                     logger.info(
                         "[TRANSFER_TRACKING_THREAD] Status for task: {}".format(
                             transfer_status["status"]
@@ -543,9 +561,9 @@ class Interchange:
                             transfer_status["status"] == "FAILED"
                             or transfer_status["status"] == "INACTIVE"
                     ):
-                        failed_reason = self.gtc.get_event(transfer_task)
+                        failed_reason = self.dtc.get_event(transfer_task)
                         if failed_reason is not None:
-                            self.gtc.cancel(transfer_task)
+                            self.dtc.cancel(transfer_task)
                             msg = self.pending_transfer_tasks.pop(task_id)
                             del self.active_transfers[task_id]
                             self.failed_transfer_tasks[msg.task_id] = GlobusTransferFailure(
@@ -612,7 +630,7 @@ class Interchange:
                     # if the (dst_ep,dest_path equal) to (src_ep, src_dir), don't transfer the data.
                     logger.info("[TRANSFER_SUBMIT_THREAD] src_path is {}".format(src_path))
                     logger.info("[TRANSFER_SUBMIT_THREAD] src_ep is {} and the src_dir is :".format(src_ep, src_dir))
-                    if src_ep == self.gtc.dst_ep and src_dir == self.gtc.local_path:
+                    if src_ep == self.dtc.dst_ep and src_dir == self.dtc.local_path:
                         logger.info("[TRANSFER_SUBMIT_THREAD] Skip the transfer task, since the destination path is "
                                     "not changed")
                         continue
@@ -629,7 +647,7 @@ class Interchange:
                     break
                 else:
                     try:
-                        task_info = self.gtc.transfer(
+                        task_info = self.dtc.transfer(
                             src_ep, src_path, basename, recursive=recursive
                         )
                         info.append(task_info)
@@ -1353,8 +1371,10 @@ class Interchange:
                 "min_blocks": self.provider.min_blocks,
                 "max_workers_per_node": self.max_workers_per_node,
                 "nodes_per_block": self.provider.nodes_per_block,
-                "globus_ep": self.globus_ep_id,
-                "globus_data_path": self.globus_data_path
+                "globus_ep_id": self.globus_ep_id,
+                "local_data_path": self.local_data_path,
+                "rsync_ip": self.rsync_ip,
+                "rsync_username": self.rsync_username
             },
         }
         local_monitor_info = self.monitor.get_avg_info()

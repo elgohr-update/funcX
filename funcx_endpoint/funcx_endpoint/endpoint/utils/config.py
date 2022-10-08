@@ -73,6 +73,8 @@ class Config(RepresentationMixin):
         stderr="./endpoint.log",
         # Globus transfer info
         globus_ep_id=None,
+        rsync_ip=None,
+        rsync_username=None,
         globus_polling_interval=10,
         local_data_path=None,
     ):
@@ -99,3 +101,9 @@ class Config(RepresentationMixin):
         if local_data_path is not None and not local_data_path.endswith("/"):
             local_data_path = local_data_path+"/"
         self.local_data_path = local_data_path
+
+        # Since interchange is lanuched as a subprocess, we need to pass a string-format
+        # parameter to the interchange to build a instance of DataTransferClient
+        # Rsync info
+        self.rsync_ip = rsync_ip
+        self.rsync_username = rsync_username

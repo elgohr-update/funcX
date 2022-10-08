@@ -3,6 +3,7 @@ import os
 
 import globus_sdk
 from fair_research_login import JSONTokenStorage, NativeClient
+from funcx_endpoint.data_transfer.data_transfer_client import DataTransferClient
 
 logger = logging.getLogger("interchange")
 
@@ -11,7 +12,7 @@ CLIENT_ID = "a0cb81f7-757e-4564-ac93-7fef03368d53"
 TOKEN_LOC = os.path.expanduser("~/.funcx/credentials/funcx_sdk_tokens.json")
 
 
-class GlobusTransferClient:
+class GlobusTransferClient(DataTransferClient):
     """
     All communication with the Globus Auth and Globus Transfer services is enclosed
     in the Globus class. In particular, the Globus class is reponsible for:
