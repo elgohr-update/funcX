@@ -2,6 +2,7 @@ import logging
 import os
 
 import globus_sdk
+from urllib.parse import urlparse
 from fair_research_login import JSONTokenStorage, NativeClient
 from funcx_endpoint.data_transfer.data_transfer_client import DataTransferClient
 
@@ -139,3 +140,9 @@ class GlobusTransferClient(DataTransferClient):
             logger.error(
                 "Could not cancel task {}. Reason: {}".format(task_id, res["message"])
             )
+
+    def parse_url(self, url):
+        """Parse a URL into a tuple of (endpoint, path)"""
+        parsed_url = urlparse(globus_url)
+        endpoint_id = parsed_url.netloc
+        src_path = parsed_url.path
