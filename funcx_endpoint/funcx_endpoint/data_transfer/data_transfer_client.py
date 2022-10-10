@@ -16,3 +16,7 @@ class DataTransferClient(metaclass=ABCMeta):
     @abstractclassmethod
     def cancel(self, task):
         pass
+
+    @abstractclassmethod
+    def parse_url(self, url):
+        pass
