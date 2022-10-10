@@ -114,6 +114,41 @@ class GlobusTransferClient(DataTransferClient):
         status = self.transfer_client.get_task(task_id)
         return status
 
+    @staticmethod
+    def parse_url(combined_url):
+        """Parse a URL into a list containing tuples of (endpoint, path)
+        URL format: {url1}|{url2}|{url3}|
+        For a single url: globus://{ep_id}/{path}:{recursive}
+        """
+        pending_transfers_task = []
+        for url in combined_url.split("|")[:-1]:
+            recursive = True if url.split(":")[2] == "True" else False
+            last_colon = url.rfind(":") 
+            #Keep the string before the colon
+            globus_url = url[:last_colon]
+            try:
+                parsed_url = urlparse(globus_url)
+                src_ep = parsed_url.netloc
+                src_path = parsed_url.path
+                basename = os.path.basename(src_path)
+                single_transfer_info = {
+                    "src_ep": src_ep,
+                    "src_path": src_path,
+                    "basename": basename,
+                    "recursive": recursive,
+                }
+                pending_transfers_task.append(single_transfer_info)
+            # raise a execption if the url is not in the correct format
+            # the interchange will catch the exception and record on 
+            except Exception as e:
+                logger.exception(
+                    "Failed to parse url {} due to error: {}".format(url, e)
+                )
+                raise Exception(
+                    "Failed to parse url {} due to error: {}".format(url, e)
+                )
+        return pending_transfers_task
+
     def get_event(self, task):
         task_id = task["task_id"]
         events = self.transfer_client.task_event_list(
@@ -140,9 +175,3 @@ class GlobusTransferClient(DataTransferClient):
             logger.error(
                 "Could not cancel task {}. Reason: {}".format(task_id, res["message"])
             )
-
-    def parse_url(self, url):
-        """Parse a URL into a tuple of (endpoint, path)"""
-        parsed_url = urlparse(globus_url)
-        endpoint_id = parsed_url.netloc
-        src_path = parsed_url.path
