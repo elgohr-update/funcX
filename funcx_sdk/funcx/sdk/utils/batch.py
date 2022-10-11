@@ -1,4 +1,4 @@
-from funcx.sdk.file import GlobusInstanceList
+from funcx.sdk.file import RemoteInstanceList
 from funcx.serialize import FuncXSerializer
 
 
@@ -26,7 +26,7 @@ class Batch:
         ----------
         *args : Any
             Args as specified by the function signature
-        remote_data : GlobusInstanceList object
+        remote_data : RemoteInstanceList object
             remote data path. Optional
         endpoint_id : uuid str
             Endpoint UUID string. Required
@@ -43,8 +43,8 @@ class Batch:
         assert function_id is not None, "function_id key-word argument must be set"
         if remote_data:
             assert isinstance(
-                remote_data, GlobusInstanceList
-            ), "Please use GlobusInstanceList to define your remote data"
+                remote_data, RemoteInstanceList
+            ), "Please use RemoteInstanceList to define your remote data"
 
         ser_args = self.fx_serializer.serialize(args)
         ser_kwargs = self.fx_serializer.serialize(kwargs)
