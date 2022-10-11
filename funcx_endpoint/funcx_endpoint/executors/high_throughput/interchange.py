@@ -537,29 +537,35 @@ class Interchange:
             for task_id, info_list in list(self.active_transfers.items()):
                 success_cnt = 0
                 for info in info_list:
-                    transfer_task, src_ep, src_path, dst_ep, dst_path = info
+                    # here info is a dict containing the following keys:
+                    # for Globus: {'task_id', 'status', 'src_ep', 'src_path', 'dest_ep', 'dest_path'}
+                    # and some other not used keys provided by globus_transfer_sdk
+                    # for Rsync: {'task_id', 'status', 'future', 'stdout', 'stderr', 'src_path', 'dest_path'}
+                    transfer_task = info
+
                     logger.debug(
-                        "[TRANSFER_TRACKING_THREAD] Globus Transfer task: {}".format(
+                        "[TRANSFER_TRACKING_THREAD]  Transfer task: {}".format(
                             transfer_task
                         )
                     )
                     transfer_status = self.dtc.status(transfer_task)
                     logger.info(
                         "[TRANSFER_TRACKING_THREAD] Status for task: {}".format(
-                            transfer_status["status"]
+                            transfer_status
                         )
                     )
-                    if transfer_status["status"] == "SUCCEEDED":
+                    if transfer_status == "SUCCEEDED":
                         logger.info(
                             "[TRANSFER_TRACKING_THREAD] Globus transfer{}, "
                             "from {}{} to {}{} succeeded".format(
-                                transfer_task["task_id"], src_ep, src_path, dst_ep, dst_path
+                                transfer_task["task_id"], transfer_task["src_ep"], transfer_task["src_path"], 
+                                transfer_task["dst_ep"], transfer_task["dst_path"],
                             )
                         )
                         success_cnt += 1
                     elif (
-                            transfer_status["status"] == "FAILED"
-                            or transfer_status["status"] == "INACTIVE"
+                            transfer_status == "FAILED"
+                            or transfer_status  == "INACTIVE"
                     ):
                         failed_reason = self.dtc.get_event(transfer_task)
                         if failed_reason is not None:
@@ -570,13 +576,13 @@ class Interchange:
                                 failed_reason
                             )
                             logger.error(
-                                "[TRANSFER_TRACKING_THREAD] Globus transfer {}, "
+                                "[TRANSFER_TRACKING_THREAD] Transfer {}, "
                                 'from {}{} to {}{} failed due to error: "{}"'.format(
                                     transfer_task["task_id"],
-                                    src_ep,
-                                    src_path,
-                                    dst_ep,
-                                    dst_path,
+                                    transfer_task["src_ep"],
+                                    transfer_task["src_path"],
+                                    transfer_task["dst_ep"],
+                                    transfer_task["dst_path"],
                                     failed_reason,
                                 )
                             )
@@ -709,13 +715,13 @@ class Interchange:
                 if data_url != "" and data_url != "None":
                     if not self.data_staging:
                         logger.exception(
-                            "[TASK_PULL_THREAD] Destination Globus "
-                            "Endpoint ID not specified. "
-                            "Please specify it in config"
+                            "[TASK_PULL_THREAD] Destination "
+                            "Endpoint not specified. "
+                            "Please specify it in Remotefile"
                         )
                         e = TransferFailure(
-                            "Destination Globus Endpoint ID not specified. "
-                            "Please specify it in config"
+                            "Destination Endpoint not specified. "
+                            "Please specify it in Remotefile"
                         )
                         self.failed_transfer_tasks[msg.task_id] = TransferFailure(
                             e

@@ -38,7 +38,3 @@ def test_rsync_transfer():
         if i==0 : assert tmp_res == True
         elif i==1 : assert tmp_res == False
         
-
-# tobe test
-#  _track_transfer_status
-# _submit_transfer

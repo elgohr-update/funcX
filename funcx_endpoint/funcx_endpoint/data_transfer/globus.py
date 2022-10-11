@@ -124,7 +124,11 @@ class GlobusTransferClient(DataTransferClient):
     def status(self, task):
         task_id = task["task_id"]
         status = self.transfer_client.get_task(task_id)
-        return status
+        # status is a dict provided by globus_sdk containing the status of the task, 
+        # and other info like failed reason
+        # we only need the status of the task
+        # a string like SUCCEEDED, FAILED, INACTIVE, ACTIVE
+        return status["status"]
 
     def check_same(self, transfer_task_info):
         src_ep = transfer_task_info['src_ep']
@@ -180,6 +184,7 @@ class GlobusTransferClient(DataTransferClient):
         return pending_transfers_task
 
     def get_event(self, task):
+        # get the event of the task, like a string describing the failed reason
         task_id = task["task_id"]
         events = self.transfer_client.task_event_list(
             task_id, num_results=1, filter="is_error:1"

@@ -14,7 +14,7 @@ from parsl.app.errors import RemoteExceptionWrapper
 from funcx import set_file_logger
 from funcx.serialize import FuncXSerializer
 from funcx_endpoint.executors.high_throughput.messages import Message
-from funcx.sdk.file import GlobusFile, GlobusDirectory
+from funcx.sdk.file import RemoteFile, RemoteDirectory
 import time
 from memory_profiler import memory_usage
 
@@ -25,10 +25,10 @@ def judge_and_set(target):
     Judge a file whether it is a globus file or not.
     If it is, set the file size.
     """
-    if isinstance(target, GlobusFile):
+    if isinstance(target, RemoteFile):
         file_size = os.path.getsize(target.get_remote_file_path())
         target.set_file_size(file_size)
-    if isinstance(target, GlobusDirectory):
+    if isinstance(target, RemoteDirectory):
         directory_size = 0
         for root, dirs, files in os.walk(target.get_remote_directory()):
             directory_size += sum([os.path.getsize(os.path.join(root, name)) for name in files])
@@ -41,7 +41,7 @@ def get_function_input_size(*args, **kwargs):
     for arg in args:
         """
         The args could consist of a tuple and a dict
-        e.g. args = [(globusfile,1,2) , {"size":1} ]
+        e.g. args = [(RemoteFile,1,2) , {"size":1} ]
         """
         if isinstance(arg, tuple) or isinstance(arg, list):
             for e in arg:
@@ -49,9 +49,9 @@ def get_function_input_size(*args, **kwargs):
         elif isinstance(arg, dict):
             for value in arg.values():
                 args_size += get_size_of_object(value)
-        elif isinstance(arg, GlobusFile):
+        elif isinstance(arg, RemoteFile):
             args_size += arg.file_size
-        elif isinstance(arg, GlobusDirectory):
+        elif isinstance(arg, RemoteDirectory):
             args_size += arg.directory_size
         else:
             args_size += sys.getsizeof(arg)
@@ -64,16 +64,16 @@ def get_size_of_object(target):
     if isinstance(target, tuple) or isinstance(target, list):
         """
         since the size of a tuple is not the sum of all elements
-        only when there is a globusfile, we add elements up
+        only when there is a RemoteFile, we add elements up
         otherwise, using sys.getsizeof
         """
         exists_file = False
         size = 0
         for e in target:
-            if isinstance(e, GlobusFile):
+            if isinstance(e, RemoteFile):
                 size += e.file_size
                 exists_file = True
-            elif isinstance(e, GlobusDirectory):
+            elif isinstance(e, RemoteDirectory):
                 size += e.directory_size
                 exists_file = True
             else:
@@ -82,9 +82,9 @@ def get_size_of_object(target):
             return sys.getsizeof(tagert)
         else:
             return size
-    elif isinstance(target, GlobusFile):
+    elif isinstance(target, RemoteFile):
         return target.file_size
-    elif isinstance(target, GlobusDirectory):
+    elif isinstance(target, RemoteDirectory):
         return target.directory_size
     else :
         return sys.getsizeof(target)
@@ -93,7 +93,7 @@ def get_size_of_object(target):
 
 def set_output_globus_instance_size(result):
     """
-    For handling globusfile stored in a list
+    For handling RemoteFile stored in a list
     """
     if isinstance(result, tuple) or isinstance(result, list):
         for element in result:
