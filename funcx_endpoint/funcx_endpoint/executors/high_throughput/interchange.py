@@ -72,7 +72,7 @@ class ManagerLost(Exception):
         return self.__repr__()
 
 
-class GlobusTransferFailure(Exception):
+class TransferFailure(Exception):
     """Task failed due to Globus transfer failure."""
 
     def __init__(self, reason):
@@ -566,7 +566,7 @@ class Interchange:
                             self.dtc.cancel(transfer_task)
                             msg = self.pending_transfer_tasks.pop(task_id)
                             del self.active_transfers[task_id]
-                            self.failed_transfer_tasks[msg.task_id] = GlobusTransferFailure(
+                            self.failed_transfer_tasks[msg.task_id] = TransferFailure(
                                 failed_reason
                             )
                             logger.error(
@@ -612,53 +612,34 @@ class Interchange:
             else:
                 # to be solved
                 data_url = msg.data_url
-            info = []
-            need_to_trans = 0
-            for url in data_url.split("|")[:-1]:
-                recursive = True if url.split(":")[2] == "True" else False
-                begin = url.rfind(":")
-                globus_url = url[:begin]
-                try:
-                    logger.info("[TRANSFER_SUBMIT_THREAD] msg url is {}".format(globus_url))
-                    parsed_url = urlparse(globus_url)
-                    src_ep = parsed_url.netloc
-                    src_path = parsed_url.path
-                    src_dir = src_path
-                    basename = os.path.basename(src_path)
-                    if not recursive and len(basename) > 0:
-                        src_dir = src_dir[:-len(basename)]
-                    # if the (dst_ep,dest_path equal) to (src_ep, src_dir), don't transfer the data.
-                    logger.info("[TRANSFER_SUBMIT_THREAD] src_path is {}".format(src_path))
-                    logger.info("[TRANSFER_SUBMIT_THREAD] src_ep is {} and the src_dir is :".format(src_ep, src_dir))
-                    if src_ep == self.dtc.dst_ep and src_dir == self.dtc.local_path:
-                        logger.info("[TRANSFER_SUBMIT_THREAD] Skip the transfer task, since the destination path is "
-                                    "not changed")
-                        continue
-                    else:
-                        need_to_trans += 1
-
-                except Exception as e:
-                    logger.exception(
+            # resovle the data url to generate transfer task instance
+            try:
+                need_to_trans_tasks = self.dtc.parse_url(data_url)
+            except Exception as e:
+                logger.exception(
                         "[TRANSFER_SUBMIT_THREAD] Failed to parse data url {}".format(
-                            globus_url
+                            data_url
                         )
                     )
-                    self.failed_transfer_tasks[msg.task_id] = GlobusTransferFailure(e)
-                    break
+                self.failed_transfer_tasks[msg.task_id] = TransferFailure(e)
+                # continue the while loop, don't submit the transfer task
+                continue
+            info = []
+            # initialize the number of tasks to be transferred
+            # if there is a task that its source and destination are the same
+            # then reduce the number 
+            num_need_to_trans = len(need_to_trans_tasks)
+
+            for transfer_task_info in num_need_to_trans:
+                # if the transfer task destination is the same as the source, skip it
+                if self.dtc.check_same(transfer_task_info):
+                    logger.info(f"[TRANSFER_SUBMIT_THREAD] Skip the same transfer task with same src_path {transfer_task_info['src_path']} and dest_path")
+                    num_need_to_trans -= 1
+                    continue
                 else:
-                    try:
-                        task_info = self.dtc.transfer(
-                            src_ep, src_path, basename, recursive=recursive
-                        )
-                        info.append(task_info)
-                    except Exception as e:
-                        logger.exception(
-                            "[TRANSFER_SUBMIT_THREAD] Failed "
-                            "to submit transfer for task {}".format(msg.task_id)
-                        )
-                        self.failed_transfer_tasks[msg.task_id] = GlobusTransferFailure(e)
-                        break
-            if need_to_trans > 0:
+                    info.append(self.dtc.transfer(transfer_task_info))
+
+            if num_need_to_trans > 0:
                 self.active_transfers[msg.task_id] = info
                 self.pending_transfer_tasks[msg.task_id] = msg
             else:
@@ -732,11 +713,11 @@ class Interchange:
                             "Endpoint ID not specified. "
                             "Please specify it in config"
                         )
-                        e = GlobusTransferFailure(
+                        e = TransferFailure(
                             "Destination Globus Endpoint ID not specified. "
                             "Please specify it in config"
                         )
-                        self.failed_transfer_tasks[msg.task_id] = GlobusTransferFailure(
+                        self.failed_transfer_tasks[msg.task_id] = TransferFailure(
                             e
                         )
                     else:

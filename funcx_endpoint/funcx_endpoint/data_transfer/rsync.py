@@ -17,14 +17,22 @@ class RsyncTransferClient(DataTransferClient):
         self.username = username  # username of the remote host
         self.transfer_tasks = {}  # task_id: future object, task id is a random uuid
 
-    def generate_rsync_command(self, src_username, src_ip, src_path, basename, recursive=False):
+    def generate_rsync_command(self, rsync_username, rsync_ip, src_path, basename, recursive=False):
         r_parm = "-avz" if not recursive else "-avzr"
-        rsync_command = f"rsync {r_parm} {src_username}@{src_ip}:{src_path} {self.local_path}"
+        rsync_command = f"rsync {r_parm} {rsync_username}@{rsync_ip}:{src_path} {self.local_path}"
         return rsync_command
 
     # transfer a file by rsync, return a future object
-    def transfer(self, src_username, src_ip, src_path, basename, recursive=False):
-        cmd = self.generate_rsync_command(src_username, src_ip, src_path, basename, recursive)
+    def transfer(self, transfer_task_info):
+        # resolve the transfer_task_info generted by the parse_url
+
+        rsync_ip = transfer_task_info['rsync_ip']
+        rsync_username = transfer_task_info['rsync_username']
+        src_path = transfer_task_info['src_path']
+        basename = transfer_task_info['basename']
+        recursive = transfer_task_info['recursive']
+
+        cmd = self.generate_rsync_command(rsync_username, rsync_ip, src_path, basename, recursive)
         with concurrent.futures.ProcessPoolExecutor() as executor:
             logger.info(f"[Rsync] transfer command: {cmd}")
             future = executor.submit(subprocess.run, cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -32,7 +40,12 @@ class RsyncTransferClient(DataTransferClient):
             task = {'task_id': task_id, 'status': 'ACTIVE', 'future': future, 'stdout': None, 'stderr': None}
             self.transfer_tasks[task_id] = task
             future.add_done_callback(partial(self._transfer_done, task=task_id))
-            return future  
+             # aggregate the task info
+            task["src_ep"] = f"{rsync_username}:{rsync_ip}"
+            task["src_path"] = src_path
+            task["dst_path"] = f"{self.local_path}/{basename}"
+            task["dst_ep"] = f"{self.dst_ep}:{self.username}"
+            return task  
 
     def _transfer_done(self, future, task):
         try:
@@ -51,6 +64,23 @@ class RsyncTransferClient(DataTransferClient):
             logger.info("Rsync transfer failed: ", e)
         return
 
+    def check_same(self, transfer_task_info):
+        rsync_ip = transfer_task_info['rsync_ip']
+        rsync_username = transfer_task_info['rsync_username']
+        src_path = transfer_task_info['src_path']
+        recursive = transfer_task_info['recursive']
+        src_dir = src_path
+        basename = os.path.basename(src_path)
+        # get the directory of source file
+        # if the object is not directory, reduce the file name
+        # only fetch the dir path
+        if not recursive and len(basename) > 0:
+            src_dir = src_dir[:-len(basename)]
+        if rsync_ip == self.dst_ep and rsync_username == self.username and src_dir== self.local_path:
+            return True
+        else:
+            return False
+
     @staticmethod
     def parse_url(combined_url):
         """Parse a URL into a list containing dicts of {rsync_ip, rsync_username, src_path, base_name, recursive}
@@ -59,8 +89,8 @@ class RsyncTransferClient(DataTransferClient):
         """
         pending_transfers_task = []
         for url in combined_url.split("|")[:-1]:
-            recursive = True if url.split(":")[2] == "True" else False
             last_colon = url.rfind(":") 
+            recursive = True if url[last_colon+1:] == "True" else False
             #Keep the string before the colon
             rsync_url = url[:last_colon]
             try:
@@ -69,12 +99,14 @@ class RsyncTransferClient(DataTransferClient):
                 rsync_ip = parsed_url.netloc[len(rsync_username)+1:]  # remove the username from the netloc, the rest is the ip address
                 src_path = parsed_url.path
                 basename = os.path.basename(src_path)
+                scheme = parsed_url.scheme
                 single_transfer_info = {
                     "rsync_ip" : rsync_ip,
                     "rsync_username": rsync_username,
                     "src_path": src_path,
                     "basename": basename,
                     "recursive": recursive,
+                    "scheme": scheme,
                 }
                 pending_transfers_task.append(single_transfer_info)
             # raise a execption if the url is not in the correct format
@@ -94,6 +126,7 @@ class RsyncTransferClient(DataTransferClient):
         status: ACTIVE, SUCCEEDED, FAILED
         INACTIVE status is not supported, only for globustransfer
         """
+        # return a string
         return task['status']
 
     def get_event(self, task):

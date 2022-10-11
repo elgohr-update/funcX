@@ -76,7 +76,15 @@ class GlobusTransferClient(DataTransferClient):
             )
         )
 
-    def transfer(self, src_ep, src_path, basename, recursive=False):
+    def transfer(self, transfer_task_info):
+        # resolve the transfer_task_info generted by the parse_url
+
+        src_ep = transfer_task_info['src_ep']
+        src_path = transfer_task_info['src_path']
+        basename = transfer_task_info['basename']
+        recursive = transfer_task_info['recursive']
+
+
         tdata = globus_sdk.TransferData(
             self.transfer_client,
             src_ep,
@@ -106,13 +114,33 @@ class GlobusTransferClient(DataTransferClient):
                     src_ep, src_path, self.dst_ep, self.local_path, e
                 )
             )
-
-        return (task, src_ep, src_path, self.dst_ep, dst_path)
+        # aggregate the task info
+        task["src_ep"] = src_ep
+        task["src_path"] = src_path
+        task["dst_path"] = dst_path
+        task["dst_ep"] = self.dst_ep
+        return task
 
     def status(self, task):
         task_id = task["task_id"]
         status = self.transfer_client.get_task(task_id)
         return status
+
+    def check_same(self, transfer_task_info):
+        src_ep = transfer_task_info['src_ep']
+        src_path = transfer_task_info['src_path']
+        recursive = transfer_task_info['recursive']
+        src_dir = src_path
+        basename = os.path.basename(src_path)
+        # get the directory of source file
+        # if the object is not directory, reduce the file name
+        # only fetch the dir path
+        if not recursive and len(basename) > 0:
+            src_dir = src_dir[:-len(basename)]
+        if src_ep == self.dst_ep and src_dir == self.local_path:
+            return True
+        else:
+            return False
 
     @staticmethod
     def parse_url(combined_url):
@@ -131,11 +159,13 @@ class GlobusTransferClient(DataTransferClient):
                 src_ep = parsed_url.netloc
                 src_path = parsed_url.path
                 basename = os.path.basename(src_path)
+                scheme = parsed_url.scheme
                 single_transfer_info = {
                     "src_ep": src_ep,
                     "src_path": src_path,
                     "basename": basename,
                     "recursive": recursive,
+                    "scheme": scheme,
                 }
                 pending_transfers_task.append(single_transfer_info)
             # raise a execption if the url is not in the correct format
