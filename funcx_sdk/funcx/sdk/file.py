@@ -84,7 +84,7 @@ class RsyncFile(RemoteFile):
     @classmethod
     def local_generate(cls, abs_file_path, local_ip, local_username):
         if not os.path.exists(abs_file_path):
-            raise Exception("[RysncFile] File not exists.")
+            raise Exception("[RsyncFile] File not exists.")
 
         return cls(rsync_ip=local_ip, rsync_username = local_username, 
         file_path=abs_file_path, file_size=os.path.getsize(abs_file_path))

@@ -116,7 +116,7 @@ class GlobusTransferClient(DataTransferClient):
 
     @staticmethod
     def parse_url(combined_url):
-        """Parse a URL into a list containing tuples of (endpoint, path)
+        """Parse a URL into a list containing dicts of{ src_ep, src_path, base_name, recursive}
         URL format: {url1}|{url2}|{url3}|
         For a single url: globus://{ep_id}/{path}:{recursive}
         """

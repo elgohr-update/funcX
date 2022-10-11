@@ -2,6 +2,7 @@ import subprocess
 import logging
 import concurrent.futures
 from functools import partial
+from urllib.parse import urlparse
 from funcx_endpoint.data_transfer.data_transfer_client import DataTransferClient
 import uuid
 import os
@@ -49,6 +50,43 @@ class RsyncTransferClient(DataTransferClient):
             self.transfer_tasks[task]['stderr'] = transfer_result.stderr  
             logger.info("Rsync transfer failed: ", e)
         return
+
+    @staticmethod
+    def parse_url(combined_url):
+        """Parse a URL into a list containing dicts of {rsync_ip, rsync_username, src_path, base_name, recursive}
+        URL format: {url1}|{url2}|{url3}|
+        For a single url: rsync://{rsync_ip}:{rsync_username}/{path}:{recursive}
+        """
+        pending_transfers_task = []
+        for url in combined_url.split("|")[:-1]:
+            recursive = True if url.split(":")[2] == "True" else False
+            last_colon = url.rfind(":") 
+            #Keep the string before the colon
+            rsync_url = url[:last_colon]
+            try:
+                parsed_url = urlparse(rsync_url)
+                rsync_username = parsed_url.hostname
+                rsync_ip = parsed_url.netloc[len(rsync_username)+1:]  # remove the username from the netloc, the rest is the ip address
+                src_path = parsed_url.path
+                basename = os.path.basename(src_path)
+                single_transfer_info = {
+                    "rsync_ip" : rsync_ip,
+                    "rsync_username": rsync_username,
+                    "src_path": src_path,
+                    "basename": basename,
+                    "recursive": recursive,
+                }
+                pending_transfers_task.append(single_transfer_info)
+            # raise a execption if the url is not in the correct format
+            # the interchange will catch the exception and record on 
+            except Exception as e:
+                logger.exception(
+                    "Failed to parse url {} due to error: {}".format(url, e)
+                )
+                raise Exception(
+                    "Failed to parse url {} due to error: {}".format(url, e)
+                )
+        return pending_transfers_task
 
     def status(self, task):
         """
