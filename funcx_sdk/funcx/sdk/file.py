@@ -25,6 +25,10 @@ class RemoteFile(metaclass=ABCMeta):
     def get_file_size(self):
         pass
 
+    @abstractclassmethod
+    def generate_url(self):
+        pass
+
 class RemoteDirectory(metaclass=ABCMeta):
 
     @abstractclassmethod
@@ -47,7 +51,11 @@ class RemoteDirectory(metaclass=ABCMeta):
     def set_directory_size(self, size):
         pass
 
-class RemoteInstanceList(metaclass=ABCMeta):
+    @abstractclassmethod
+    def generate_url(self):
+        pass
+
+
     @abstractclassmethod
     def generate_url(self):
         pass
@@ -101,6 +109,9 @@ class RsyncFile(RemoteFile):
     def get_file_size(self):
         return self.file_size
 
+    def generate_url(self):
+        return f"rsync://{self.rsync_username}:{self.rsync_ip}{self.file_path}:False|"
+
 class RsyncDirectory(RemoteDirectory):
 
     def __init__(self, rsync_ip, rsync_username, directory_path, directory_size=0):
@@ -152,28 +163,8 @@ class RsyncDirectory(RemoteDirectory):
     def set_directory_size(self, size):
         self.directory_size = size
 
-class RsyncInstanceList(RemoteInstanceList):
-    def __init__(self, instance_list, pre_trans=False):
-        self.instance_list = instance_list
-        # pre_trans means that it has been transfered by parsl client
-        self.pre_trans = pre_trans
-
     def generate_url(self):
-        if len(self.instance_list) <= 0:
-            return ""
-        url = ""
-        for file in self.instance_list:
-            if isinstance(file, RsyncDirectory):
-                recursive = True
-                """
-                There is no dash between endpoint and directory path.
-                Because the unix path will involes a '/' at the beginning.
-                """
-                url += f"rsync://{file.rsync_username}:{file.rsync_ip}{file.directory_path}:{recursive}|"
-            elif isinstance(file, RsyncFile):
-                recursive = False
-                url += f"rsync://{file.rsync_username}:{file.rsync_ip}{file.file_path}:{recursive}|"
-        return url
+        return f"rsync://{self.rsync_username}:{self.rsync_ip}{self.directory_path}:True|"
 
 class GlobusFile(RemoteFile):
     """The Globus File Class.
@@ -218,6 +209,9 @@ class GlobusFile(RemoteFile):
         if local_path is not None and local_path.endswith('/'):
             local_path = local_path[:-1]
         return os.path.join(local_path, self.file_path)
+
+    def generate_url(self):
+        return f"globus://{self.endpoint}{self.file_path}:False|"
 
     def set_file_size(self, size):
         self.file_size = size
@@ -277,28 +271,7 @@ class GlobusDirectory(RemoteDirectory):
     def set_directory_size(self, size):
         self.directory_size = size
 
-# GlobusInstanceList is only invoked for internal program (funcX-executor)
-class GlobusInstanceList(RemoteInstanceList):
-    def __init__(self, instance_list, pre_trans=False):
-        self.instance_list = instance_list
-        # pre_trans means that it has been transfered by parsl client
-        self.pre_trans = pre_trans
-
     def generate_url(self):
-        if len(self.instance_list) <= 0:
-            return ""
-        url = ""
-        for file in self.instance_list:
-            if isinstance(file, GlobusDirectory):
-                recursive = True
-                """
-                There is no dash between endpoint and directory path.
-                Because the unix path will involes a '/' at the beginning.
-                """
-                url += f"globus://{file.endpoint}{file.directory_path}:{recursive}|"
-            elif isinstance(file, GlobusFile):
-                recursive = False
-                url += f"globus://{file.endpoint}{file.file_path}:{recursive}|"
-        return url
+        return f"globus://{self.endpoint}{self.directory_path}:True|"
 
 

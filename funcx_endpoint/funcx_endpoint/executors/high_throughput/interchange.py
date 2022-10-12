@@ -621,6 +621,9 @@ class Interchange:
             # resovle the data url to generate transfer task instance
             try:
                 need_to_trans_tasks = self.dtc.parse_url(data_url)
+                logger.info(
+                    "[TRANSFER_SUBMIT_THREAD] Transfer task: {}".format(need_to_trans_tasks)
+                )
             except Exception as e:
                 logger.exception(
                         "[TRANSFER_SUBMIT_THREAD] Failed to parse data url {}".format(
@@ -636,7 +639,7 @@ class Interchange:
             # then reduce the number 
             num_need_to_trans = len(need_to_trans_tasks)
 
-            for transfer_task_info in num_need_to_trans:
+            for transfer_task_info in need_to_trans_tasks:
                 # if the transfer task destination is the same as the source, skip it
                 if self.dtc.check_same(transfer_task_info):
                     logger.info(f"[TRANSFER_SUBMIT_THREAD] Skip the same transfer task with same src_path {transfer_task_info['src_path']} and dest_path")
