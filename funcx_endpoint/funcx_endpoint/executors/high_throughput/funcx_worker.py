@@ -26,13 +26,19 @@ def judge_and_set(target):
     If it is, set the file size.
     """
     if isinstance(target, RemoteFile):
-        file_size = os.path.getsize(target.get_remote_file_path())
-        target.set_file_size(file_size)
+        try:
+            file_size = os.path.getsize(target.get_remote_file_path())
+            target.set_file_size(file_size)
+        except:
+            target.set_file_size(-1)
     if isinstance(target, RemoteDirectory):
-        directory_size = 0
-        for root, dirs, files in os.walk(target.get_remote_directory()):
-            directory_size += sum([os.path.getsize(os.path.join(root, name)) for name in files])
-        target.set_directory_size(directory_size)
+        try:
+            directory_size = 0
+            for root, dirs, files in os.walk(target.get_remote_directory()):
+                directory_size += sum([os.path.getsize(os.path.join(root, name)) for name in files])
+            target.set_directory_size(directory_size)
+        except:
+            target.set_directory_size(-1)
 
 
 def get_function_input_size(*args, **kwargs):
