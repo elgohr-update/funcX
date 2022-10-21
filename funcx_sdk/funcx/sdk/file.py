@@ -77,6 +77,7 @@ class RsyncFile(RemoteFile):
         # for example, if file_path is /home/user/test.txt, return /home/user/test.txt
         # if file_path is test.txt, return /{os.current_path}/test.txt
         self.file_path = os.path.abspath(file_path)
+        self.file_name = os.path.basename(self.file_path)
         self.file_size = file_size
 
     @classmethod
@@ -101,7 +102,7 @@ class RsyncFile(RemoteFile):
         local_path = os.getenv('LOCAL_PATH')
         if local_path is not None and local_path.endswith('/'):
             local_path = local_path[:-1]
-        return os.path.join(local_path, self.file_path)
+        return os.path.join(local_path, self.file_name)
 
     def set_file_size(self, size):
         self.file_size = size
@@ -186,6 +187,7 @@ class GlobusFile(RemoteFile):
         self.endpoint = endpoint
         obs_path = os.path.abspath(file_path)
         self.file_path = obs_path
+        self.file_name = os.path.basename(obs_path)
         self.file_size = file_size
 
     @classmethod
@@ -208,7 +210,7 @@ class GlobusFile(RemoteFile):
         local_path = os.getenv('LOCAL_PATH')
         if local_path is not None and local_path.endswith('/'):
             local_path = local_path[:-1]
-        return os.path.join(local_path, self.file_path)
+        return os.path.join(local_path, self.file_name )
 
     def generate_url(self):
         return f"globus://{self.endpoint}{self.file_path}:False|"
