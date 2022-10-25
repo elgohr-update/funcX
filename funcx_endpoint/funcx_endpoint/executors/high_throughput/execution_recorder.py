@@ -41,7 +41,6 @@ class ExecutionRecorder:
         
 
     def _create_new_record_file(self):
-        #TODO
         """
          Here should be a strategies like RLU, to update the record
         """

@@ -123,6 +123,9 @@ def timer(func):
         info_dict['execution_time'] = end_time - start_time
         info_dict['mem_usage'] = res[0]
         info_dict['func_name'] = func.__name__
+        info_dict['cpu_cores'] = psutil.cpu_count(logical=True)
+        info_dict['cpr_freqs_max'] = psutil.cpu_freq().max
+
 
         return info_dict
 
