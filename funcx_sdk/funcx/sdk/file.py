@@ -82,6 +82,9 @@ class RsyncFile(RemoteFile):
 
     @classmethod
     def remote_generate(cls, file_name):
+        if file_name is None:
+            raise Exception("file_name cannot be None")
+        
         if file_name.startswith('/'):
             file_name = file_name[1:]
         local_path = os.getenv('LOCAL_PATH')
@@ -124,6 +127,9 @@ class RsyncDirectory(RemoteDirectory):
 
     @classmethod
     def remote_generate(cls, directory_name):
+        if directory_name is None:
+            raise Exception("directory_name cannot be None")
+
         # In case that unnecessary prefix "/"
         if directory_name.startswith('/'):
             directory_name = directory_name[1:]
@@ -192,6 +198,8 @@ class GlobusFile(RemoteFile):
 
     @classmethod
     def remote_generate(cls, file_name):
+        if file_name is None:
+            raise Exception("file_name cannot be None")
         if file_name.startswith('/'):
             file_name = file_name[1:]
         globus_ep_id = os.getenv('GLOBUS_EP_ID')
@@ -236,6 +244,8 @@ class GlobusDirectory(RemoteDirectory):
 
     @classmethod
     def remote_generate(cls, directory_name):
+        if directory_name is None:
+            raise Exception("directory_name cannot be None")
         if directory_name.startswith('/'):
             directory_name = directory_name[1:]
         globus_ep_id = os.getenv('GLOBUS_EP_ID')
