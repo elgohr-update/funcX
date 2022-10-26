@@ -116,6 +116,8 @@ def timer(func):
         info_dict['cpu_percent'] = psutil.cpu_percent()
         start_time = time.time()
         # execute the function and return the maximum memory usage
+        logger.info(f"Execution args: {args}")
+        logger.info(f"Execution kwargs: {kwargs}")
         res = memory_usage((func, args, kwargs), retval=True, max_usage=True, max_iterations=1)
         end_time = time.time()
         info_dict['result'] = res[1]
