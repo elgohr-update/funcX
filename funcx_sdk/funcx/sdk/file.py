@@ -68,17 +68,22 @@ class RsyncFile(RemoteFile):
     For GlobusFIle, the remote endpoint is determined by the endpoint_id.
     """
 
-    def __init__(self,rsync_ip,rsync_username,file_path, file_size=0):
+    def __init__(self,rsync_ip,rsync_username,file_path, file_size=0, check_rsync_auth=False):
         self.rsync_ip = rsync_ip
         self.rsync_username = rsync_username
-        # os.path.abspath if file_path only contains a name 
-        # return /{os.current_path}/{file_name}
-        # if file_path contains a directory, return file_path directly.
-        # for example, if file_path is /home/user/test.txt, return /home/user/test.txt
-        # if file_path is test.txt, return /{os.current_path}/test.txt
+
+        """
+        os.path.abspath if file_path only contains a name 
+        return /{os.current_path}/{file_name}
+        if file_path contains a directory, return file_path directly.
+        for example, if file_path is /home/user/test.txt, return /home/user/test.txt
+        if file_path is test.txt, return /{os.current_path}/test.txt
+        """
+
         self.file_path = os.path.abspath(file_path)
         self.file_name = os.path.basename(self.file_path)
         self.file_size = file_size
+        self.check_rsync_auth = check_rsync_auth
 
     @classmethod
     def remote_generate(cls, file_name):
@@ -89,17 +94,19 @@ class RsyncFile(RemoteFile):
             file_name = file_name[1:]
         local_path = os.getenv('LOCAL_PATH')
         abs_path = os.path.join(local_path, file_name)
+        check_rsync_auth = True if os.getenv('CHECK_RSYNC_AUTH') == "True" else False
         return cls(rsync_ip=os.getenv('RSYNC_IP'), 
                    rsync_username=os.getenv('RSYNC_USERNAME'), 
-                   file_path=abs_path)
+                   file_path=abs_path,
+                   check_rsync_auth=check_rsync_auth)
 
     @classmethod
-    def local_generate(cls, abs_file_path, local_ip, local_username):
+    def local_generate(cls, abs_file_path, local_ip, local_username, check_rsync_auth=False):
         if not os.path.exists(abs_file_path):
             raise Exception("[RsyncFile] File not exists.")
 
         return cls(rsync_ip=local_ip, rsync_username = local_username, 
-        file_path=abs_file_path, file_size=os.path.getsize(abs_file_path))
+        file_path=abs_file_path, file_size=os.path.getsize(abs_file_path), check_rsync_auth=check_rsync_auth)
 
     def get_remote_file_path(self):
         local_path = os.getenv('LOCAL_PATH')
@@ -114,19 +121,20 @@ class RsyncFile(RemoteFile):
         return self.file_size
 
     def generate_url(self):
-        return f"rsync://{self.rsync_username}:{self.rsync_ip}{self.file_path}:False|"
+        return f"rsync://{self.rsync_username}:{self.rsync_ip}{self.file_path}:recursive=False&check_rsync_auth={self.check_rsync_auth}|"
 
 class RsyncDirectory(RemoteDirectory):
 
-    def __init__(self, rsync_ip, rsync_username, directory_path, directory_size=0):
+    def __init__(self, rsync_ip, rsync_username, directory_path, directory_size=0, check_rsync_auth=False):
         self.rsync_ip = rsync_ip
         self.rsync_username = rsync_username
         self.directory_path = os.path.abspath(directory_path)
         self.directory_name = os.path.basename(directory_path)
         self.directory_size = directory_size
+        self.check_rsync_auth = check_rsync_auth
 
     @classmethod
-    def remote_generate(cls, directory_name):
+    def remote_generate(cls, directory_name,check_rsync_auth=False):
         if directory_name is None:
             raise Exception("directory_name cannot be None")
 
@@ -135,11 +143,12 @@ class RsyncDirectory(RemoteDirectory):
             directory_name = directory_name[1:]
         local_path = os.getenv('LOCAL_PATH')
         abs_path = os.path.join(local_path,directory_name)
+        check_rsync_auth = True if os.getenv('CHECK_RSYNC_AUTH') == "True" else False
         # if there is not a directory, then create it.
         if not os.path.exists(abs_path):
             os.makedirs(abs_path)
         return cls(rsync_ip=os.getenv('RSYNC_IP'), rsync_username=os.getenv('RSYNC_USERNAME'), 
-        directory_path=abs_path)
+        directory_path=abs_path, check_rsync_auth=check_rsync_auth)
 
     @classmethod
     def local_generate(cls, local_ip, local_username, abs_directory_path):
@@ -171,7 +180,7 @@ class RsyncDirectory(RemoteDirectory):
         self.directory_size = size
 
     def generate_url(self):
-        return f"rsync://{self.rsync_username}:{self.rsync_ip}{self.directory_path}:True|"
+        return f"rsync://{self.rsync_username}:{self.rsync_ip}{self.directory_path}:recursive=True&check_rsync_auth={self.check_rsync_auth}|"
 
 class GlobusFile(RemoteFile):
     """The Globus File Class.

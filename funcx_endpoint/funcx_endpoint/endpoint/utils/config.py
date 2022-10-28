@@ -75,6 +75,8 @@ class Config(RepresentationMixin):
         globus_ep_id=None,
         rsync_ip=None,
         rsync_username=None,
+        check_rsync_auth=False,
+        rsync_password_file=None,
         globus_polling_interval=10,
         local_data_path=None,
     ):
@@ -107,3 +109,8 @@ class Config(RepresentationMixin):
         # Rsync info
         self.rsync_ip = rsync_ip
         self.rsync_username = rsync_username
+        self.check_rsync_auth = check_rsync_auth
+        if rsync_password_file is not None:
+            import os
+            rsync_password_file = os.path.abspath(rsync_password_file)
+        self.rsync_password_file = rsync_password_file

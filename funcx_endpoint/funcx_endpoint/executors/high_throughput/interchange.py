@@ -154,6 +154,8 @@ class Interchange:
             globus_ep_id=None,
             rsync_ip=None,
             rsync_username=None,
+            check_rsync_auth=False,
+            rsync_password_file=None,
             local_data_path=None,
             globus_polling_interval=10,
             monitor=None
@@ -314,6 +316,8 @@ class Interchange:
         self.globus_ep_id = globus_ep_id
         self.rsync_ip = rsync_ip
         self.rsync_username = rsync_username
+        self.rsync_password_file = rsync_password_file
+        self.check_rsync_auth = check_rsync_auth
         self.local_data_path = None
         if self.globus_ep_id is not None or self.rsync_ip is not None:
             
@@ -415,6 +419,7 @@ class Interchange:
                 "--globus_ep_id={globus_ep_id} "
                 "--rsync_ip={rsync_ip} "
                 "--rsync_username={rsync_username} "
+                "--check_rsync_auth={check_rsync_auth} "
             )
 
         self.current_platform = {
@@ -490,7 +495,8 @@ class Interchange:
             local_data_path=self.local_data_path,
             globus_ep_id=self.globus_ep_id,
             rsync_ip=self.rsync_ip,
-            rsync_username=self.rsync_username
+            rsync_username=self.rsync_username,
+            check_rsync_auth=self.check_rsync_auth
         )
 
         self.launch_cmd = l_cmd

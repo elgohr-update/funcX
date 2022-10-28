@@ -261,6 +261,8 @@ class HighThroughputExecutor(BlockProviderExecutor, RepresentationMixin):
             globus_ep_id=None,
             rsync_ip=None,
             rsync_username=None,
+            rsync_password_file=None,
+            check_rsync_auth=False,
             local_data_path=None,
             globus_polling_interval=10,
             monitor=LocalMonitor()
@@ -269,6 +271,8 @@ class HighThroughputExecutor(BlockProviderExecutor, RepresentationMixin):
         self.globus_ep_id = globus_ep_id
         self.rsync_ip = rsync_ip
         self.rsync_username = rsync_username
+        self.rsync_password_file = rsync_password_file
+        self.check_rsync_auth = check_rsync_auth
         self.local_data_path = local_data_path
         self.globus_polling_interval = globus_polling_interval
         logger.debug("Initializing HighThroughputExecutor")
@@ -483,6 +487,8 @@ class HighThroughputExecutor(BlockProviderExecutor, RepresentationMixin):
                 "globus_ep_id": self.globus_ep_id,
                 "rsync_ip": self.rsync_ip,
                 "rsync_username": self.rsync_username,
+                "check_rsync_auth": self.check_rsync_auth,
+                "rsync_password_file": self.rsync_password_file,
                 "local_data_path": self.local_data_path,
                 "globus_polling_interval": self.globus_polling_interval,
                 "monitor": self.monitor

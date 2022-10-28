@@ -241,6 +241,8 @@ class EndpointInterchange:
             executor.globus_ep_id = self.config.globus_ep_id
             executor.rsync_ip = self.config.rsync_ip
             executor.rsync_username = self.config.rsync_username
+            executor.rsync_password_file = self.config.rsync_password_file
+            executor.check_rsync_auth = self.config.check_rsync_auth
             executor.local_data_path = self.config.local_data_path
             executor.globus_polling_interval = self.config.globus_polling_interval
             if not executor.endpoint_id:

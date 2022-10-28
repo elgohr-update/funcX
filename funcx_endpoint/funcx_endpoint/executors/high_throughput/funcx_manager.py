@@ -81,6 +81,7 @@ class Manager:
         globus_ep_id="",
         rsync_ip="",
         rsync_username="",
+        check_rsync_auth="",
     ):
         """
         Parameters
@@ -244,10 +245,12 @@ class Manager:
         self.globus_ep_id = globus_ep_id
         self.rsync_ip = rsync_ip
         self.rsync_username = rsync_username
+        self.check_rsync_auth = check_rsync_auth
         os.environ["LOCAL_PATH"] = self.local_data_path
         os.environ["GLOBUS_EP_ID"] = self.globus_ep_id
         os.environ["RSYNC_IP"] = self.rsync_ip
         os.environ["RSYNC_USERNAME"] = self.rsync_username
+        os.environ["CHECK_RSYNC_AUTH"] = self.check_rsync_auth
 
     def create_reg_message(self):
         """Creates a registration message to identify the worker to the interchange"""
@@ -784,7 +787,11 @@ def cli_run():
     )
 
     parser.add_argument(
-        "--rsync_username", default="", help="For setting rsync_username"
+       "--rsync_username", default="", help="For setting rsync_username"
+    )
+
+    parser.add_argument(
+        "--check_rsync_auth", default="False", help="For setting check_rsync_auth"
     )
 
     args = parser.parse_args()
@@ -819,6 +826,7 @@ def cli_run():
         logger.info(f"globus_ep_id: {args.globus_ep_id}")
         logger.info(f"rsync_ip: {args.rsync_ip}")
         logger.info(f"rsync_username: {args.rsync_username}")
+        logger.info(f"check_rsync_auth: {args.check_rsync_auth}")
         logger.info(f"result_url: {args.result_url}")
         logger.info(f"hb_period: {args.hb_period}")
         logger.info(f"hb_threshold: {args.hb_threshold}")
@@ -852,7 +860,8 @@ def cli_run():
             local_data_path=args.local_data_path,
             globus_ep_id=args.globus_ep_id,
             rsync_ip=args.rsync_ip,
-            rsync_username=args.rsync_username
+            rsync_username=args.rsync_username,
+            check_rsync_auth=args.check_rsync_auth
         )
         manager.start()
 

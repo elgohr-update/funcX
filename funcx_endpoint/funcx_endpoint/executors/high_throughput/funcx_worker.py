@@ -66,8 +66,8 @@ def get_function_input_size(*args, **kwargs):
         kwargs_size += get_size_of_object(value)
     return args_size + kwargs_size
 
-def get_size_of_object(target):
-    if isinstance(target, tuple) or isinstance(target, list):
+def get_size_of_object(target_obj):
+    if isinstance(target_obj, tuple) or isinstance(target_obj, list):
         """
         since the size of a tuple is not the sum of all elements
         only when there is a RemoteFile, we add elements up
@@ -75,7 +75,7 @@ def get_size_of_object(target):
         """
         exists_file = False
         size = 0
-        for e in target:
+        for e in target_obj:
             if isinstance(e, RemoteFile):
                 size += e.file_size
                 exists_file = True
@@ -85,15 +85,15 @@ def get_size_of_object(target):
             else:
                 size += sys.getsizeof(e)
         if not exists_file:
-            return sys.getsizeof(tagert)
+            return sys.getsizeof(target_obj)
         else:
             return size
-    elif isinstance(target, RemoteFile):
-        return target.file_size
-    elif isinstance(target, RemoteDirectory):
-        return target.directory_size
+    elif isinstance(target_obj, RemoteFile):
+        return target_obj.file_size
+    elif isinstance(target_obj, RemoteDirectory):
+        return target_obj.directory_size
     else :
-        return sys.getsizeof(target)
+        return sys.getsizeof(target_obj)
     
 
 

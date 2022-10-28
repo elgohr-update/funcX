@@ -10,16 +10,34 @@ import os
 logger = logging.getLogger("interchange")
 
 class RsyncTransferClient(DataTransferClient):
-    def __init__(self, local_path=".", dst_ep=None,username=os.getlogin(),**kwargs):
+    def __init__(self, local_path=".", dst_ep=None,username=os.getlogin(),password_file=None,**kwargs):
         # all connected endpoints should be authenticated by ssh manually
         self.local_path = local_path # local path to store the data
         self.dst_ep = dst_ep      # the ip address of the host of funcx endpoint
         self.username = username  # username of the remote host
         self.transfer_tasks = {}  # task_id: future object, task id is a random uuid
+        self.password_file = password_file # password file: store the password for other endpoints
+        logger.info(f"[Rsync] initialized with local_path: {local_path}, dst_ep: {dst_ep}, username: {username}, password_file: {password_file}")
+    
+    def _get_password_from_file(self, rsync_ip, rsync_username):
+        import csv
+        with open(self.password_file, 'r') as f:
+            pwd_reader = csv.reader(f, delimiter=',')
+            for row in pwd_reader:
+                if row[0] == rsync_ip and row[1] == rsync_username:
+                    return row[2]
+        return None
 
-    def generate_rsync_command(self, rsync_username, rsync_ip, src_path, basename, recursive=False):
-        r_parm = "-avz" if not recursive else "-avzr"
-        rsync_command = f"rsync {r_parm} {rsync_username}@{rsync_ip}:{src_path} {self.local_path}"
+    def generate_rsync_command(self, rsync_username, rsync_ip, src_path, recursive, check_rsync_auth):
+        if not check_rsync_auth:
+            r_parm = "-avz" if not recursive else "-avzr"
+            rsync_command = f"rsync {r_parm} {rsync_username}@{rsync_ip}:{src_path} {self.local_path}"
+        else:
+            password = self._get_password_from_file(rsync_ip, rsync_username)
+            if password is None:
+                raise Exception(f"Password for {rsync_username}@{rsync_ip} is not found in {self.password_file}")
+            r_parm = "-avz" if not recursive else "-avzr"
+            rsync_command = f"sshpass -p '{password}' rsync {r_parm} --password-file={self.password_file} {rsync_username}@{rsync_ip}:{src_path} {self.local_path}"
         return rsync_command
 
     # transfer a file by rsync, return a future object
@@ -28,11 +46,12 @@ class RsyncTransferClient(DataTransferClient):
 
         rsync_ip = transfer_task_info['rsync_ip']
         rsync_username = transfer_task_info['rsync_username']
+        check_rsync_auth = transfer_task_info['check_rsync_auth']
         src_path = transfer_task_info['src_path']
         basename = transfer_task_info['basename']
         recursive = transfer_task_info['recursive']
 
-        cmd = self.generate_rsync_command(rsync_username, rsync_ip, src_path, basename, recursive)
+        cmd = self.generate_rsync_command(rsync_username, rsync_ip, src_path, recursive, check_rsync_auth)
         with concurrent.futures.ProcessPoolExecutor() as executor:
             logger.info(f"[Rsync] transfer command: {cmd}")
             future = executor.submit(subprocess.run, cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -62,7 +81,7 @@ class RsyncTransferClient(DataTransferClient):
             self.transfer_tasks[task]['status'] = 'FAILED'
             self.transfer_tasks[task]['stdout'] = transfer_result.stdout
             self.transfer_tasks[task]['stderr'] = transfer_result.stderr  
-            logger.info("Rsync transfer failed: ", e)
+            logger.info(f"Rsync transfer failed: {e}")
         return
 
     def check_same(self, transfer_task_info):
@@ -86,12 +105,14 @@ class RsyncTransferClient(DataTransferClient):
     def parse_url(combined_url):
         """Parse a URL into a list containing dicts of {rsync_ip, rsync_username, src_path, base_name, recursive}
         URL format: {url1}|{url2}|{url3}|
-        For a single url: rsync://{rsync_ip}:{rsync_username}/{path}:{recursive}
+        For a single url: rsync://{rsync_ip}:{rsync_username}/{path}:recursive={recursive}&check_rsync_auth={check_rsync_auth}
         """
         pending_transfers_task = []
         for url in combined_url.split("|")[:-1]:
-            last_colon = url.rfind(":") 
-            recursive = True if url[last_colon+1:] == "True" else False
+            last_colon = url.rfind(":")
+            trans_settings =  url[last_colon+1:] # eg: recursive=False&check_rsync_auth=True
+            recursive = True if trans_settings.split("&")[0].split("=")[1] == "True" else False
+            check_rsync_auth = True if trans_settings.split("&")[1].split("=")[1] == "True" else False
             #Keep the string before the colon
             rsync_url = url[:last_colon]
             try:
@@ -107,6 +128,7 @@ class RsyncTransferClient(DataTransferClient):
                     "src_path": src_path,
                     "basename": basename,
                     "recursive": recursive,
+                    "check_rsync_auth": check_rsync_auth,
                     "scheme": scheme,
                 }
                 pending_transfers_task.append(single_transfer_info)
