@@ -10,7 +10,7 @@ import os
 logger = logging.getLogger("interchange")
 
 class RsyncTransferClient(DataTransferClient):
-    def __init__(self, local_path=".", dst_ep=None,username=os.getlogin(),password_file=None,**kwargs):
+    def __init__(self, local_path=".", dst_ep=None,username="",password_file=None,**kwargs):
         # all connected endpoints should be authenticated by ssh manually
         self.local_path = local_path # local path to store the data
         self.dst_ep = dst_ep      # the ip address of the host of funcx endpoint
