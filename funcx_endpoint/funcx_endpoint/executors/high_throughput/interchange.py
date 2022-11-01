@@ -338,7 +338,8 @@ class Interchange:
                 self.dtc = RsyncTransferClient(
                     local_path = self.local_data_path,
                     dst_ep = self.rsync_ip,
-                    username = self.rsync_username
+                    username = self.rsync_username,
+                    password_file=self.rsync_password_file,
                 )
             
         
@@ -562,7 +563,7 @@ class Interchange:
                     )
                     if transfer_status == "SUCCEEDED":
                         logger.info(
-                            "[TRANSFER_TRACKING_THREAD] Globus transfer{}, "
+                            "[TRANSFER_TRACKING_THREAD] Transfer{}, "
                             "from {}{} to {}{} succeeded".format(
                                 transfer_task["task_id"], transfer_task["src_ep"], transfer_task["src_path"], 
                                 transfer_task["dst_ep"], transfer_task["dst_path"],

@@ -29,15 +29,17 @@ class RsyncTransferClient(DataTransferClient):
         return None
 
     def generate_rsync_command(self, rsync_username, rsync_ip, src_path, recursive, check_rsync_auth):
+        logger.info(f"[Rsync] generating_rsync_command: {rsync_username}, {rsync_ip}, {src_path}, {recursive}, {check_rsync_auth}")
         if not check_rsync_auth:
             r_parm = "-avz" if not recursive else "-avzr"
             rsync_command = f"rsync {r_parm} {rsync_username}@{rsync_ip}:{src_path} {self.local_path}"
         else:
+            logger.info(f"[Rsync] password file: {self.password_file}")
             password = self._get_password_from_file(rsync_ip, rsync_username)
             if password is None:
                 raise Exception(f"Password for {rsync_username}@{rsync_ip} is not found in {self.password_file}")
             r_parm = "-avz" if not recursive else "-avzr"
-            rsync_command = f"sshpass -p '{password}' rsync {r_parm} --password-file={self.password_file} {rsync_username}@{rsync_ip}:{src_path} {self.local_path}"
+            rsync_command = f"sshpass -p '{password}' rsync {r_parm} {rsync_username}@{rsync_ip}:{src_path} {self.local_path}"
         return rsync_command
 
     # transfer a file by rsync, return a future object
