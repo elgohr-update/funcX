@@ -55,11 +55,6 @@ class RemoteDirectory(metaclass=ABCMeta):
     def generate_url(self):
         pass
 
-
-    @abstractclassmethod
-    def generate_url(self):
-        pass
-
 class RsyncFile(RemoteFile):
     """
     RsyncFile is a class that represents a file that transferred by rsync.
