@@ -442,7 +442,7 @@ class WorkerMap:
 
         The advertisement includes two parts:
 
-        One is the read_worker_type_counts, which reflects the capacity of different
+        One is the ready_worker_type_counts, which reflects the capacity of different
         types of containers on the manager.
 
         The other is the total number of workers of each type. This includes all the
