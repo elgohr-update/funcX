@@ -32,10 +32,11 @@ REQUIRES = [
     # building from source, which may mean there's an issue in the packaged library
     # further investigation may be needed if the issue persists in the next pyzmq
     # release
-    "pyzmq>=22.0.0,!=22.3.0",
+    "pyzmq==22.2.1",
     # TODO: evaluate removal of the 'retry' library after the update to
     # globus-sdk v3, which provides automatic retries on all API calls
     "retry==0.9.2",
+    "click==8.0.0",
     # 'parsl' is a core requirement of the funcx-endpoint, essential to a range
     # of different features and functions
     # pin exact versions because it does not use semver
