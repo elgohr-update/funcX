@@ -37,6 +37,8 @@ from funcx_endpoint.executors.high_throughput.messages import (
     MessageType,
     TaskStatusCode,
 )
+from funcx_endpoint.strategies.simple import SimpleStrategy
+
 
 LOOP_SLOWDOWN = 0.0  # in seconds
 HEARTBEAT_CODE = (2 ** 32) - 1
@@ -714,6 +716,9 @@ class Interchange:
                 logger.debug("Got heartbeat")
             else:
                 logger.info(f"[TASK_PULL_THREAD] Received task:{msg.__dict__}")
+                if isinstance(self.strategy, SimpleStrategy):
+                    self.strategy.update_idle_since()
+                    logger.info("[TASK_PULL_THREAD] update the idle_since for strategy")
                 local_container = self.get_container(msg.container_id)
                 msg.set_local_container(local_container)
                 if local_container not in self.pending_task_queue:

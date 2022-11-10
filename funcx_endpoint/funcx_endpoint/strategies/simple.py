@@ -36,6 +36,11 @@ class SimpleStrategy(BaseStrategy):
         self.max_idletime = max_idletime
         self.executors = {"idle_since": None}
 
+    
+    def update_idle_since(self):
+        # the manager is not idle since there is a call
+        self.executors["idle_since"] = None
+
     def strategize(self, *args, **kwargs):
         try:
             self._strategize(*args, **kwargs)
@@ -60,6 +65,7 @@ class SimpleStrategy(BaseStrategy):
         parallelism = self.interchange.provider.parallelism
 
         active_tasks = sum(self.interchange.get_total_tasks_outstanding().values())
+        logger.debug(f"The number of current active_tasks {active_tasks}")
         status = self.interchange.provider_status()
         logger.debug(f"Provider status : {status}")
 
@@ -108,7 +114,7 @@ class SimpleStrategy(BaseStrategy):
                 if (time.time() - idle_since) > self.max_idletime:
                     # We have resources idle for the max duration,
                     # we have to scale_in now.
-                    logger.debug(
+                    logger.info(
                         "Idle time has reached {}s; removing resources".format(
                             self.max_idletime
                         )
