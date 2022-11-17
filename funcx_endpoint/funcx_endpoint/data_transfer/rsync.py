@@ -62,10 +62,10 @@ class RsyncTransferClient(DataTransferClient):
             self.transfer_tasks[task_id] = task
             future.add_done_callback(partial(self._transfer_done, task=task_id))
              # aggregate the task info
-            task["src_ep"] = f"{rsync_username}:{rsync_ip}"
+            task["src_ep"] = f"{rsync_username}@{rsync_ip}"
             task["src_path"] = src_path
             task["dst_path"] = f"{self.local_path}/{basename}"
-            task["dst_ep"] = f"{self.dst_ep}:{self.username}"
+            task["dst_ep"] = f"{self.username}@{self.dst_ep}"
             logger.info(f"[Rsync] transfer task: {task}")
             return task  
 
