@@ -50,7 +50,7 @@ class Batch:
         payload = self.fx_serializer.pack_buffers([ser_args, ser_kwargs])
 
         data_url = ""
-        if len(remote_data) == 0:
+        if remote_data is None or len(remote_data) == 0:
             data_url = None
         else:
             for file in remote_data:
