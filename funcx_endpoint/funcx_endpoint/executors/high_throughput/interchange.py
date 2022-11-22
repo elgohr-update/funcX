@@ -1209,7 +1209,8 @@ class Interchange:
                                 len(b_messages)
                             )
                         )
-                    for b_message in b_messages:
+                    for num in range(len(b_messages)):
+                        b_message = b_messages[num]
                         r = pickle.loads(b_message)
                         logger.debug(
                             "[MAIN] Received result for task {} from {}".format(
@@ -1217,12 +1218,14 @@ class Interchange:
                             )
                         )
                         self._record_execution_result_information(result=r)
+                        r = self._append_interchange_info_at_result(result=r)
                         task_type = self.containers[r["container_id"]]
                         if r["task_id"] in self.task_status_deltas:
                             del self.task_status_deltas[r["task_id"]]
                         self._ready_manager_queue[manager]["tasks"][task_type].remove(
                             r["task_id"]
                         )
+                        b_messages[num] = pickle.dumps(r)
                     self._ready_manager_queue[manager]["total_tasks"] -= len(b_messages)
 
                     # TODO: handle this with a Task message or something?
@@ -1501,11 +1504,29 @@ class Interchange:
         logger.info(f"Recording execution result information for task {result}")
         task_id = result["task_id"]
         if "result" in result.keys(): 
-            result = self.serializer.deserialize(result["result"])
-            logger.info(f"Deserialized result: {result}")
-            self.execution_recorder.write_record(task_id, result)
+            worker_result = self.serializer.deserialize(result["result"])
+            logger.info(f"Deserialized result: {worker_result}")
+            self.execution_recorder.write_record(task_id, worker_result)
         else:
             logger.info(f"Result is not in the result keys since execption: {result.keys()}")
+
+    def _append_interchange_info_at_result(self, result):
+        """Append interchange information to the result.
+
+        Parameters
+        ----------
+        result : object
+            result got from the worker
+        """
+        if "result" in result.keys(): 
+            worker_result = self.serializer.deserialize(result["result"])
+            result_package = self.get_status_report()
+            worker_result["active_managers"]  = result_package["info"]["active_managers"]
+            worker_result["total_workers"] = result_package["info"]["total_workers"]
+            worker_result["idle_workers"] = result_package["info"]["idle_workers"]
+            worker_result["pending_tasks"] = result_package["info"]["pending_tasks"]
+            result["result"] = self.serializer.serialize(worker_result)
+        return result
         
 
 
