@@ -48,6 +48,10 @@ class RemoteDirectory(metaclass=ABCMeta):
         pass
 
     @abstractclassmethod
+    def get_directory_size(self):
+        pass
+
+    @abstractclassmethod
     def set_directory_size(self, size):
         pass
 
@@ -94,11 +98,14 @@ class RsyncFile(RemoteFile):
                    rsync_username=os.getenv('RSYNC_USERNAME'), 
                    file_path=abs_path,
                    check_rsync_auth=check_rsync_auth)
+    @classmethod
+    def remote_init(cls, file_path, remote_ip, remote_username, file_size, check_rsync_auth=False):
+        return cls(rsync_ip=remote_ip, rsync_username=remote_username, file_path=file_path, file_size=file_size, check_rsync_auth=check_rsync_auth)
 
     @classmethod
     def local_generate(cls, abs_file_path, local_ip, local_username, check_rsync_auth=False):
         if not os.path.exists(abs_file_path):
-            raise Exception("[RsyncFile] File not exists.")
+            raise Exception("[RsyncFile] File not exists. If you want to init a remote file, please use remote_init")
 
         return cls(rsync_ip=local_ip, rsync_username = local_username, 
         file_path=abs_file_path, file_size=os.path.getsize(abs_file_path), check_rsync_auth=check_rsync_auth)
@@ -145,6 +152,12 @@ class RsyncDirectory(RemoteDirectory):
         return cls(rsync_ip=os.getenv('RSYNC_IP'), rsync_username=os.getenv('RSYNC_USERNAME'), 
         directory_path=abs_path, check_rsync_auth=check_rsync_auth)
 
+    
+    @classmethod
+    def remote_init(cls, directory_path, remote_ip, remote_username, directory_size, check_rsync_auth=False):
+        return cls(rsync_ip=remote_ip, rsync_username=remote_username, directory_path=directory_path, 
+        directory_size=directory_size, check_rsync_auth=check_rsync_auth)
+
     @classmethod
     def local_generate(cls, local_ip, local_username, abs_directory_path):
         if not os.path.exists(abs_directory_path):
@@ -173,6 +186,9 @@ class RsyncDirectory(RemoteDirectory):
 
     def set_directory_size(self, size):
         self.directory_size = size
+
+    def get_directory_size(self):
+        return self.directory_size
 
     def generate_url(self):
         return f"rsync://{self.rsync_username}:{self.rsync_ip}{self.directory_path}:recursive=True&check_rsync_auth={self.check_rsync_auth}|"
@@ -286,6 +302,9 @@ class GlobusDirectory(RemoteDirectory):
 
     def set_directory_size(self, size):
         self.directory_size = size
+    
+    def get_directory_size(self):
+        return self.directory_size
 
     def generate_url(self):
         return f"globus://{self.endpoint}{self.directory_path}:True|"
