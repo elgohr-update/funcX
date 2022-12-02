@@ -17,7 +17,7 @@ class Batch:
         self.task_group_id = task_group_id
 
     def add(
-        self, *args, remote_data=None, endpoint_id=None, function_id=None, **kwargs
+        self, *args, dummy=False, cmd_config=None, remote_data=None, endpoint_id=None, function_id=None, **kwargs
     ):
         """Add an function invocation to a batch submission
 
@@ -55,6 +55,10 @@ class Batch:
         else:
             for file in remote_data:
                 data_url += file.generate_url()
+
+        if dummy and cmd_config is not None:
+            data_url = f"managers={cmd_config['manager']}"
+        
 
         # data_url covers the recursive attribute
         recursive = False if remote_data else False
