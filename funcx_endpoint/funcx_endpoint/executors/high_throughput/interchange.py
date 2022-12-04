@@ -727,7 +727,7 @@ class Interchange:
                     )
                 # Check if data transfer is needed
                 data_url = msg.data_url
-                if data_url != "" and data_url != "None":
+                if data_url != "" and data_url != "None" and not data_url.startswith("dummy"):
                     if not self.data_staging:
                         logger.exception(
                             "[TASK_PULL_THREAD] Destination "
@@ -746,6 +746,10 @@ class Interchange:
                         self.pending_transfer_queue.put(msg)
                 # We pass the raw message along
                 else:
+                    if data_url.startswith("dummy"):
+                        logger.info(f"[TASK_PULL_THREAD] got a scale command from client {data_url}")
+                        self.parse_command_from_data_url(data_url)
+
                     self.pending_task_queue[local_container].put(
                         {
                             "task_id": msg.task_id,
@@ -766,6 +770,28 @@ class Interchange:
                 )
                 task_counter += 1
                 logger.debug(f"[TASK_PULL_THREAD] Fetched task:{task_counter}")
+
+    def parse_command_from_data_url(self, data_url):
+        """
+        Rough implementation of command server.
+        Endpoint will get the command from client(parsl) by data_url.
+        Parse the command in this function and then scale up/down by command.
+        """
+        commands = data_url.split("|")
+        scale_out_manager_num = 0
+        scale_in_manager_num = 0
+        for command in commands:
+            if command.startswith("out_manager"):
+                scale_out_manager_num = int(command.split("=")[1])
+            if command.startswith("in_manager"):
+                scale_in_manager_num = int(command.split("=")[1])
+                
+        if scale_out_manager_num > 0:
+            self.scale_out(scale_out_manager_num)
+        if scale_in_manager_num > 0:
+            self.scale_in(scale_in_manager_num)
+        
+        
 
     def get_container(self, container_uuid):
         """Get the container image location if it is not known to the interchange"""

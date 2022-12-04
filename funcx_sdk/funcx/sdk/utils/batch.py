@@ -57,7 +57,7 @@ class Batch:
                 data_url += file.generate_url()
 
         if dummy and cmd_config is not None:
-            data_url = f"managers={cmd_config['manager']}"
+            data_url = f"dummy=1|out_manager={cmd_config['out_manager']}|in_manager={cmd_config['in_manager']}"
         
 
         # data_url covers the recursive attribute
