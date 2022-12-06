@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 
 class LocalMonitor:
 
-    def __init__(self, monitor_freq=1, record_duration=60):
+    def __init__(self, monitor_freq=30, record_duration=180):
         self._kill_event = threading.Event()
         self._monitor_thread = threading.Thread(target=self.start,
                                                 args=(self._kill_event,),
@@ -54,7 +54,3 @@ class LocalMonitor:
             for k in res.keys():
                 res[k] = res[k] / len(self.info_list)
         return res
-
-    # TODO information can be stored at the funcx-webservice
-    def submit_to_webservice(self):
-        pass

@@ -1365,6 +1365,15 @@ class Interchange:
         pending_tasks = self.total_pending_task_count
         num_managers = len(self._ready_manager_queue)
         live_workers = self.get_total_live_workers()
+        cores_per_unit = 0
+        local_monitor_info = self.monitor.get_avg_info()
+        from parsl.providers import LocalProvider,SlurmProvider,LSFProvider,PBSProProvider
+        if isinstance(self.provider, LocalProvider):
+            cores_per_unit = local_monitor_info['cores']
+        if isinstance(self.provider, LSFProvider) or isinstance(self.provider, SlurmProvider):
+            cores_per_unit = self.provider.cores_per_node
+        if isinstance(self.provider, PBSProProvider):
+            cores_per_unit = self.provider.cpus_per_node
 
         for manager in self._ready_manager_queue:
             total_cores += self._ready_manager_queue[manager]["cores"]
@@ -1405,10 +1414,11 @@ class Interchange:
                 "globus_ep_id": self.globus_ep_id,
                 "local_data_path": self.local_data_path,
                 "rsync_ip": self.rsync_ip,
-                "rsync_username": self.rsync_username
+                "rsync_username": self.rsync_username,
+                "cores_per_unit": cores_per_unit,
             },
         }
-        local_monitor_info = self.monitor.get_avg_info()
+        
         result_package["info"] = dict(result_package["info"], **local_monitor_info)
         self.last_core_hr_counter = core_hrs
         return result_package
