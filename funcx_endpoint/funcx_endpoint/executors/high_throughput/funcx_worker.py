@@ -127,6 +127,8 @@ def timer(func):
         info_dict['func_name'] = func.__name__
         info_dict['cpu_cores'] = psutil.cpu_count(logical=True)
         info_dict['cpu_freqs_max'] = psutil.cpu_freq().max
+        info_dict['cpu_freqs_min'] = psutil.cpu_freq().min
+        info_dict['cpu_freqs_current'] = psutil.cpu_freq().current
 
 
         return info_dict
