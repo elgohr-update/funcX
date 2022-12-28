@@ -41,6 +41,19 @@ def judge_and_set(target):
             target.set_directory_size(-1)
 
 
+def get_output_size(result):
+    """
+    Get the size of the result
+    """
+    if isinstance(result, tuple) or isinstance(result, list):
+        size = 0
+        for element in result:
+            size += get_size_of_object(element)
+        return size
+    else:
+        return get_size_of_object(result)
+
+
 def get_function_input_size(*args, **kwargs):
 
     args_size = 0
@@ -122,6 +135,7 @@ def timer(func):
         end_time = time.time()
         info_dict['result'] = res[1]
         set_output_globus_instance_size(res[1])
+        info_dict['output_size'] = get_output_size(res[1])
         info_dict['execution_time'] = end_time - start_time
         info_dict['mem_usage'] = res[0]
         info_dict['func_name'] = func.__name__
@@ -129,8 +143,6 @@ def timer(func):
         info_dict['cpu_freqs_max'] = psutil.cpu_freq().max
         info_dict['cpu_freqs_min'] = psutil.cpu_freq().min
         info_dict['cpu_freqs_current'] = psutil.cpu_freq().current
-
-
         return info_dict
 
     return wrapper
