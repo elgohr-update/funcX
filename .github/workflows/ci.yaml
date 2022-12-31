@@ -83,7 +83,7 @@ jobs:
       id: extract_tag_name
 
     - name: Build funcX-endpoint Image for selected python version
-      uses: elgohr/Publish-Docker-Github-Action@master
+      uses: elgohr/Publish-Docker-Github-Action@v5
       env:
         PYTHON_VERSION: ${{ matrix.python }}
       with:
